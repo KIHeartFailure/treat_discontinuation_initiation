@@ -1,0 +1,260 @@
+```{r treatdisccoxreg, cache=cacheon}
+
+funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Yes", valmedrefpost = "Yes", name) {
+
+  # incidence
+  if (!rep) {
+    ev <- rsdata %>%
+      filter(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre) %>%
+      group_by(!!sym(medpost)) %>%
+      summarise(
+        ev = sum(!!sym(event) == "Yes"),
+        .groups = "rowwise"
+      )
+  }
+  if (rep) {
+    ev <- rsdata %>%
+      filter(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre) %>%
+      group_by(!!sym(medpost)) %>%
+      summarise(
+        ev = sum(!!sym(event)),
+        .groups = "rowwise"
+      )
+  }
+
+  s <- rsdata %>%
+    filter(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre) %>%
+    group_by(!!sym(medpost)) %>%
+    summarise(
+      s = sum(!!sym(time) / 365.25),
+      .groups = "rowwise"
+    )
+  r <- pois.exact(x = ev$ev, pt = s$s / 1000)
+
+  inc <- paste0(
+    ev$ev, ", ",
+    fn(s$s, dig = 0), ", ",
+    fn(r$rate, dig = 0), " (",
+    fn(r$lower, dig = 0), "-",
+    fn(r$upper, dig = 0), ")"
+  )
+
+  if (!rep) {
+    # crude cox reg
+
+    mod <- coxph(formula(paste0("Surv(", time, ", ", event, " == 'Yes') ~ relevel(", medpost, ", ref = '", valmedrefpost, "')")),
+      data = rsdata %>% filter(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+    )
+    smod <- summary(mod)
+
+    hrcrude <- paste0(
+      fn(smod$conf.int[1], dig = 1),
+      " (", fn(smod$conf.int[3], dig = 1),
+      "-", fn(smod$conf.int[4], dig = 1), "), ",
+      fn(smod$coefficients[5], dig = 3, p = TRUE)
+    )
+
+    # adj cox reg
+
+    amod <- hf_coxph_mids(formula(paste0(
+      "Surv(", time, ",", event, " == 'Yes') ~ relevel(",
+      medpost, ", ref = '", valmedrefpost, "') + ", paste(modvars, collapse = " + ")
+    )),
+    data = imp,
+    subset = expr(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+    )
+    asmod <- summary(pool(amod))
+
+    hradj <- paste0(
+      fn(exp(asmod$estimate[1]), dig = 1),
+      " (", fn(exp(asmod$estimate[1] - global_z05 * asmod$std.error[1]), dig = 1),
+      "-", fn(exp(asmod$estimate[1] + global_z05 * asmod$std.error[1]), dig = 1), "), ",
+      fn(asmod$p.value[1], dig = 3, p = TRUE)
+    )
+  }
+
+  if (rep) {
+    # neg binomial regression
+    ## crude
+    mod <- glm.nb(formula(paste0(event, " ~ relevel(", medpost, ", ref = '", valmedrefpost, "') + offset(log(", time, "))")),
+      data = rsdata %>% filter(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+    )
+
+    smod <- summary(mod)
+    hrcrude <- paste0(
+      fn(exp(smod$coefficients[2, 1]), dig = 2),
+      " (", fn(exp(smod$coefficients[2, 1] - global_z05 * smod$coefficients[2, 2]), dig = 2),
+      "-", fn(exp(smod$coefficients[2, 1] + global_z05 * smod$coefficients[2, 2]), dig = 2), "), ",
+      fn(smod$coefficients[2, 4], dig = 3, p = TRUE)
+    )
+
+    ## adjusted
+    amod <- hf_glm.nb_mids(formula(paste0(
+      event, " ~ relevel(", medpost, ", ref = '", valmedrefpost, "') + offset(log(", time, ")) +",
+      paste(modvars, collapse = " + ")
+    )),
+    data = imp,
+    subset = expr(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+    )
+
+    asmod <- summary(pool(amod))
+
+    hradj <- paste0(
+      fn(exp(asmod$estimate[2]), dig = 2),
+      " (", fn(exp(asmod$estimate[2] - global_z05 * asmod$std.error[2]), dig = 2),
+      "-", fn(exp(asmod$estimate[2] + global_z05 * asmod$std.error[2]), dig = 2), "), ",
+      fn(asmod$p.value[2], dig = 3, p = TRUE)
+    )
+  }
+
+  if (medpost != "ddr_loopdiuretic_post") {
+    out <- rbind(inc, c(hrcrude, "ref"), c(hradj, "ref"))
+  } else {
+    out <- rbind(inc, c("ref", hrcrude), c("ref", hradj))
+  }
+  
+  if (rep) out <- data.frame(rep(name, 3), c("No event, sum py, incidence per 1000 py", "Crude IRR (95% CI), p", "Adjusted IRR (95% CI), p"), out)
+  if (!rep) out <- data.frame(rep(name, 3), c("No event, sum py, incidence per 1000 py", "Crude HR (95% CI), p", "Adjusted HR (95% CI), p"), out)
+
+  colnames(out) <- c("priormed", "mod", "No", "Yes")
+  return(out)
+}
+
+funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname) {
+  # HFrEF
+  rmra <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
+  rmra8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo")
+
+  rrasi <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
+  rrasi8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo")
+
+  rbbl <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl")
+  rbbl8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd/8 mo")
+
+  rloop <- funccoxreg(
+    time = time2, event = event2, rep = rep2, 
+    efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics"
+  )
+  rloop8m <- funccoxreg(
+    time = time2, event = event2, rep = rep2, 
+    efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics 2 dd/8 mo"
+  )
+
+  refall <- bind_rows(rmra, rmra8m, rrasi, rrasi8m, rbbl, rbbl8m, rloop, rloop8m)
+
+  # HFmrEF
+  mrrasi <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
+  mrrasi8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo")
+
+  mrbbl <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl")
+  mrbbl8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd/8 mo")
+
+  mrloop <- funccoxreg(
+    time = time2, event = event2, rep = rep2, 
+    efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics"
+  )
+  mrloop8m <- funccoxreg(
+    time = time2, event = event2, rep = rep2, 
+    efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics 2 dd/8 mo"
+  )
+
+  mrefall <- bind_rows(mrrasi, mrrasi8m, mrbbl, mrbbl8m, mrloop, mrloop8m)
+
+  # HFpEF
+  pmra <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFpEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
+  pmra8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFpEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo")
+
+  ploop <- funccoxreg(
+    time = time2, event = event2, rep = rep2, 
+    efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics"
+  )
+  ploop8m <- funccoxreg(
+    time = time2, event = event2, rep = rep2, 
+    efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics 2 dd/8 mo"
+  )
+
+  pefall <- bind_rows(pmra, pmra8m, ploop, ploop8m)
+
+  ovall <- Reduce(
+    function(...) {
+      full_join(...,
+        by = c("priormed", "mod")
+      )
+    },
+    list(refall, mrefall, pefall)
+  )
+
+  write.xlsx(ovall, paste0("./output/tabs/coxreg_", eventname, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+  ## fix in order to use escape = TRUE
+  colnames(ovall) <- sanitize_text(c("Prior medication", "Model", rep(c("No treatment", "Treatment"), 3)))
+
+ default_kable(ovall,
+    caption = paste0("Treatment discontinuation (MRA, RASi, Bbl)/initiation (Loopdiuretics) - ", eventname),
+    escape = TRUE
+  ) %>%
+    landscape() %>%
+    add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFpEF" = 2))
+}
+```
+
+```{r treatdisccoxregdeath, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_death3y", eventname = "All-cause mortality within 3 years")
+```
+
+```{r treatdisccoxregdeathcv, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_deathcv3y", eventname = "CV mortality within 3 years")
+```
+
+```{r treatdisccoxregdeathnoncv, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_deathnoncv3y", eventname = "Non-CV mortality within 3 years")
+```
+
+```{r treatdisccoxreghospany, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_hospany3y", event2 = "sos_out_hospany3y", eventname = "First all-cause hospitalization within 3 years")
+```
+
+```{r treatdisccoxreghospcv, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_hospcv3y", event2 = "sos_out_hospcv3y", eventname = "First CV hospitalization within 3 years")
+```
+
+```{r treatdisccoxreghospnoncv, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_hospnoncv3y", event2 = "sos_out_hospnoncv3y", eventname = "First non-CV hospitalization within 3 years")
+```
+
+```{r treatdisccoxreghosphf, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_hosphf3y", event2 = "sos_out_hosphf3y", eventname = "First HF hospitalization within 3 years")
+```
+
+```{r treatdisccoxreghospanyrep, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_nohospany3y", rep2 = TRUE, eventname = "All-cause hospitalization within 3 years")
+```
+
+```{r treatdisccoxreghospcvrep, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_nohospcv3y", rep2 = TRUE, eventname = "CV hospitalization within 3 years")
+```
+
+```{r treatdisccoxreghospnoncvrep, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_nohospnoncv3y", rep2 = TRUE, eventname = "Non-CV hospitalization within 3 years")
+```
+
+```{r treatdisccoxreghosphfrep, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_nohosphf3y", rep2 = TRUE, eventname = "HF hospitalization within 3 years")
+```

@@ -1,0 +1,128 @@
+```{r treatdisclogreg, cache=cacheon}
+
+funclogreg <- function(efcat, medpre, medpost, valmedpre = "Yes", valmedpost = "No", name) {
+
+  # desk stat
+  ds <- rsdata %>%
+    filter(shf_ef_cat == efcat & !!sym(medpre) == valmedpre) %>%
+    group_by(shf_location) %>%
+    count(!!sym(medpost)) %>%
+    mutate(
+      p = fn(n/sum(n) * 100, 1),
+      np = paste0(n, " (", p, "%)")
+    ) %>%
+    filter(!!sym(medpost) == valmedpost) %>%
+    select(-n, -p, -!!sym(medpost)) %>%
+    pivot_wider(values_from = np, names_from = shf_location)
+
+  # crude log reg
+
+  mod <- glm(formula(paste0(medpost, "== '", valmedpost, "' ~ shf_location")),
+    family = binomial(link = "logit"),
+    data = rsdata %>% filter(shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+  )
+  smod <- summary(mod)
+
+  orcrude <- c("ref", paste0(
+    fn(exp(smod$coefficients[2, 1]), dig = 1),
+    " (", fn(exp(smod$coefficients[2, 1] - global_z05 * smod$coefficients[2, 2]), dig = 1),
+    "-", fn(exp(smod$coefficients[2, 1] + global_z05 * smod$coefficients[2, 2]), dig = 1), "), ",
+    fn(smod$coefficients[2, 4], dig = 3, p = TRUE)
+  ))
+
+  # adj log reg
+
+  amod <- hf_glm_mids(formula(paste0(
+    medpost, "=='", valmedpost, "' ~ shf_location + ", paste(modvars, collapse = " + ")
+  )),
+  data = imp,
+  subset = expr(shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+  )
+  asmod <- summary(pool(amod))
+
+  oradj <- c("ref", paste0(
+    fn(exp(asmod$estimate[2]), dig = 1),
+    " (", fn(exp(asmod$estimate[2] - global_z05 * asmod$std.error[2]), dig = 1),
+    "-", fn(exp(asmod$estimate[2] + global_z05 * asmod$std.error[2]), dig = 1), "), ",
+    fn(asmod$p.value[2], dig = 3, p = TRUE)
+  ))
+
+  out <- rbind(ds, orcrude, oradj)
+  out <- cbind(priormed = rep(name, 3), mod = c("n (%)", "Crude OR (95% CI), p", "Adjusted OR (95% CI), p"), out)
+}
+
+# HFrEF
+rmra <- funclogreg(efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
+rmra8m <- funclogreg(efcat = "HFrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo")
+
+rrasi <- funclogreg(efcat = "HFrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
+rrasi8m <- funclogreg(efcat = "HFrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo")
+
+rbbl <- funclogreg(efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl")
+rbbl8m <- funclogreg(efcat = "HFrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd/8 mo")
+
+rloop <- funclogreg(
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics"
+)
+rloop8m <- funclogreg(
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics 2 dd/8 mo"
+)
+
+refall <- bind_rows(rmra, rmra8m, rrasi, rrasi8m, rbbl, rbbl8m, rloop, rloop8m)
+
+# HFmrEF
+mrrasi <- funclogreg(efcat = "HFmrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
+mrrasi8m <- funclogreg(efcat = "HFmrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo")
+
+mrbbl <- funclogreg(efcat = "HFmrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl")
+mrbbl8m <- funclogreg(efcat = "HFmrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd/8 mo")
+
+mrloop <- funclogreg(
+  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics"
+)
+mrloop8m <- funclogreg(
+  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics 2 dd/8 mo"
+)
+
+mrefall <- bind_rows(mrrasi, mrrasi8m, mrbbl, mrbbl8m, mrloop, mrloop8m)
+
+# HFpEF
+pmra <- funclogreg(efcat = "HFpEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
+pmra8m <- funclogreg(efcat = "HFpEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo")
+
+ploop <- funclogreg(
+  efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics"
+)
+ploop8m <- funclogreg(
+  efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics 2 dd/8 mo"
+)
+
+pefall <- bind_rows(pmra, pmra8m, ploop, ploop8m)
+
+ovall <- Reduce(
+  function(...) {
+    full_join(...,
+      by = c("priormed", "mod")
+    )
+  },
+  list(refall, mrefall, pefall)
+)
+
+write.xlsx(ovall, paste0("./output/tabs/logreg_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+## fix in order to use escape = TRUE
+colnames(ovall) <- sanitize_text(c("Prior medication", "Model", rep(c("In-patient", "Out-patient"), 3)))
+
+default_kable(ovall,
+  caption = "Treatment discontinuation (MRA, RASi, Bbl)/initiation (Loopdiuretics)",
+  escape = TRUE
+) %>%
+  landscape() %>%
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFpEF" = 2))
+```

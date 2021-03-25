@@ -1,0 +1,178 @@
+---
+title: 'Statistical report: Discontinuation of guideline-recommended HF treatments after a HF hospitalization'
+subtitle: 'DRAFT'
+author: 'Statistician: Lina Benson'
+  
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 7
+    number_sections: yes
+link-citations: yes
+bibliography: references.bib
+nocite: '@*'
+header-includes:
+   - \usepackage{draftwatermark}
+---
+
+\newpage 
+\tableofcontents 
+\listoftables
+\listoffigures
+\newpage
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, include = TRUE, comment = "",
+  warning = FALSE, message = FALSE, fig.pos = "H",
+  fig.path = "../output/figs/"
+)
+options(knitr.kable.NA = "")
+```
+
+```{r adjust_directory_if_needed, include=FALSE}
+# Uncomment lines below if rmd file is placed in a subdirectory
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+```
+
+```{r load_project}
+# 1. Set options in config/global.dcf
+# 2. Load packages listed in config/global.dcf
+# 3. Import functions and code in lib directory
+
+ProjectTemplate::reload.project()
+
+cacheon <- TRUE
+```             
+
+# Data handling
+
+## Data source
+
+SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.2. 
+
+## Inclusion/exclusion criteria
+
+```{r flow}
+default_kable(flow, caption = "Flowchart")
+```
+
+First patient in: `r min(rsdata$shf_indexdtm)` and last patient in: `r max(rsdata$shf_indexdtm)`.  
+
+The median age (IQR) is `r rsdata %>% summarise(med = fn(median(shf_age), dig = 1),
+                                             q1 = fn(quantile(shf_age, probs = 0.25), dig = 1),
+                                             q3 = fn(quantile(shf_age, probs = 0.75), dig = 1)) %>%
+                                   mutate(out = paste0(med, " (", q1, "-", q3, ")")) %>%
+                                   pull(out)` and 
+`r rsdata %>% count(shf_sex) %>%
+  mutate(perc = fn(n / sum(n) * 100, 1)) %>%
+  filter(shf_sex == "Female") %>%
+  pull(perc)`% females.    
+
+## Created variables 
+
+```{r ddr}
+default_kable(metalm, caption = "Medications from DDR", scale_down = F)
+```
+
+Prior medication is defined as 1 dispensed prescription within 6 months to 1 day prior to index date. With a sensitivity analysis of 2 dispensed prescriptions, with at least 1 day between, within 8 months to 1 day prior to index date. 
+
+Post medication is defined as 1 dispensed prescription from at index date until 6 months after index date. 
+
+```{r npr}
+default_kable(metaout, caption = "Additional outcomes from NPR")
+```
+
+# Statistical analysis 
+
+## General
+
+All analyses were performed using `r sessionInfo()$R.version$version.string` [@r]. 
+The level of significance is set to 5%, two-sided. No adjustment for multiple 
+comparisons were made and therefore the results should be viewed with some care.
+
+## Baseline characteristics
+
+```{r, child = "../src/tab1.Rmd"}
+
+```
+
+Usually revasc is included in ihd but you want seperatly?
+
+Depending on how you want to present the data can instead have sep tables for prior rasi ect use and have EF as columns. Applies also to the rest of the presentation. Suggest you find a "system" and present in i similar manner throughout.   
+
+grouped nyha III and IV together since so few in IV so models didn't converge. 
+
+## Missing data
+
+Missing data was imputed with multiple imputation (n = 10) using mice [@mice]. 
+Variables included in the model are indicated in 
+Table \ref{tab:tab1ref} together with the priro MRA, RASI, Bbl and loopdiuretics. 
+
+## Treatment discontinuation/initiation 
+
+A logistic regression is performed separately for the 3 EF groups for patients 
+with the respective medications prior to the hospitalization/visit, with discontinuation/initiation as the outcome. 
+Adjustment is performed for variables indicated in \ref{tab:tab1ref}. 
+
+```{r, child = "../src/treatdisclogreg.Rmd"}
+
+```
+
+## Predictors of dicontinuation/initiation 
+
+A logistic regression is performed separately for the 3 EF groups for patients 
+with the respective medications prior to the hospitalization, with discontinuation/initiation as the outcome. 
+Only patients hospitalized are included (so the controls are dropped from this analysis). 
+
+I think better to do sep model for only hosp pats (otherwise you will also looking at predictors in the out-pats). 
+Yes/No? However, is same model as above (except dropped the out-pats) so bit odd maybe. Interaction is not really fitting here since not actually interested in the out-pats. 
+
+should loopd be dropped for this analysis?
+
+```{r, child = "../src/predtreatdisc.Rmd"}
+
+```
+
+## Outcomes after dicontinuation
+
+should loopd be dropped?
+
+don't understand the "in combination"... how?
+
+only did 3 yrs. think should be enough since so much output.
+
+Data were censored at 2019-12-31, death (were applicable), emigration or 3 years. 
+
+Cox proportional hazards regressions were 
+used to model the time to first event analysis and negative 
+binomial regression including the log of time as an offset in the model for 
+the repeated events. The models were partly crude and partly adjusted for variables 
+indicated in Table \ref{tab:tab1ref}.
+
+```{r, child = "../src/treatdisccoxreg.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+# Reproducibility
+
+## R session information {#sessioninfo}
+
+```{r sessinfo}
+sessionInfo()
+```
+
+## R code
+
+The R code for all data handling and statistical analyses are found: 
+https://github.com/KIHeartFailure/treatdiscontinuation. On publication
+the repository will be made public so as to 
+link to it from the resulting article for increased transparency and code sharing.
+No data or output is stored in the repository. 
+
+# References

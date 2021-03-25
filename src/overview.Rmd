@@ -1,0 +1,102 @@
+```{r overview, cache=cacheon}
+
+funcov <- function(efcat, medpre, medpost, valmedpre = "Yes", valmedpost = "No", name) {
+  data <- rsdata %>%
+    filter(shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+
+  out <- data %>%
+    group_by(shf_location) %>%
+    count(!!sym(medpost)) %>%
+    mutate(
+      p = fn(n / sum(n) * 100, 1),
+      np = paste0(n, " (", p, "%)")
+    ) %>%
+    filter(!!sym(medpost) == valmedpost) %>%
+    select(-n, -p, -!!sym(medpost)) %>%
+    pivot_wider(values_from = np, names_from = shf_location)
+
+  cq <- chisq.test(data$shf_location, data %>% pull(!!sym(medpost)))
+
+  out <- cbind(name, out, p = fn(cq$p.value, dig = 3, p = T))
+}
+
+# HFrEF
+rmra <- funcov(efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
+rmra8m <- funcov(efcat = "HFrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd / 8 mo")
+
+rrasi <- funcov(efcat = "HFrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
+rrasi8m <- funcov(efcat = "HFrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd / 8 mo")
+
+rbbl <- funcov(efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl")
+rbbl8m <- funcov(efcat = "HFrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd / 8 mo")
+
+rloop <- funcov(
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics"
+)
+rloop8m <- funcov(
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics 2 dd / 8 mo"
+)
+
+refall <- bind_rows(rmra, rmra8m, rrasi, rrasi8m, rbbl, rbbl8m, rloop, rloop8m)
+
+# HFmrEF
+mrrasi <- funcov(efcat = "HFmrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
+mrrasi8m <- funcov(efcat = "HFmrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd / 8 mo")
+
+mrbbl <- funcov(efcat = "HFmrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl")
+mrbbl8m <- funcov(efcat = "HFmrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd / 8 mo")
+
+mrloop <- funcov(
+  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics"
+)
+mrloop8m <- funcov(
+  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics 2 dd / 8 mo"
+)
+
+mrefall <- bind_rows(mrrasi, mrrasi8m, mrbbl, mrbbl8m, mrloop, mrloop8m)
+
+# HFpEF
+pmra <- funcov(efcat = "HFpEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
+pmra8m <- funcov(efcat = "HFpEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd / 8 mo")
+
+ploop <- funcov(
+  efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics"
+)
+ploop8m <- funcov(
+  efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics 2 dd / 8 mo"
+)
+
+pefall <- bind_rows(pmra, pmra8m, ploop, ploop8m)
+
+ovall <- Reduce(
+  function(...) {
+    full_join(...,
+      by = "name"
+    )
+  },
+  list(refall, mrefall, pefall)
+)
+
+write.xlsx(ovall, paste0("./output/tabs/overview_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+## fix in order to use escape = TRUE
+colnames(ovall) <- sanitize_text(c("Prior medication", rep(c("In-patient", "Out-patient", "p-value"), 3)))
+
+footnote(
+  default_kable(ovall,
+    caption = "Overview treatment discontinuation (MRA, RASi, Bbl)/initiation (Loopdiuretics)",
+    escape = TRUE
+  ) %>%
+    landscape() %>%
+    add_header_above(c(" " = 1, "HFrEF" = 3, " HFmrEF" = 3, "HFpEF" = 3)),
+  general = c(
+    "N (%) and tested with chi-square test."
+  )
+)
+```
