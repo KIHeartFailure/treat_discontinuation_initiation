@@ -51,7 +51,7 @@ cacheon <- TRUE
 
 ## Data source
 
-SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.2. 
+SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.3. 
 
 ## Inclusion/exclusion criteria
 
@@ -99,23 +99,17 @@ comparisons were made and therefore the results should be viewed with some care.
 
 ```
 
-Usually revasc is included in ihd but you want seperatly?
-
-Depending on how you want to present the data can instead have sep tables for prior rasi ect use and have EF as columns. Applies also to the rest of the presentation. Suggest you find a "system" and present in i similar manner throughout.   
-
-grouped nyha III and IV together since so few in IV so models didn't converge. 
-
 ## Missing data
 
 Missing data was imputed with multiple imputation (n = 10) using mice [@mice]. 
 Variables included in the model are indicated in 
-Table \ref{tab:tab1ref} together with the priro MRA, RASI, Bbl and loopdiuretics. 
+Table \ref{tab:tab1mra}. 
 
 ## Treatment discontinuation/initiation 
 
 A logistic regression is performed separately for the 3 EF groups for patients 
 with the respective medications prior to the hospitalization/visit, with discontinuation/initiation as the outcome. 
-Adjustment is performed for variables indicated in \ref{tab:tab1ref}. 
+Adjustment is performed for variables indicated in \ref{tab:tab1mra}. 
 
 ```{r, child = "../src/treatdisclogreg.Rmd"}
 
@@ -127,22 +121,11 @@ A logistic regression is performed separately for the 3 EF groups for patients
 with the respective medications prior to the hospitalization, with discontinuation/initiation as the outcome. 
 Only patients hospitalized are included (so the controls are dropped from this analysis). 
 
-I think better to do sep model for only hosp pats (otherwise you will also looking at predictors in the out-pats). 
-Yes/No? However, is same model as above (except dropped the out-pats) so bit odd maybe. Interaction is not really fitting here since not actually interested in the out-pats. 
-
-should loopd be dropped for this analysis?
-
 ```{r, child = "../src/predtreatdisc.Rmd"}
 
 ```
 
 ## Outcomes after dicontinuation
-
-should loopd be dropped?
-
-don't understand the "in combination"... how?
-
-only did 3 yrs. think should be enough since so much output.
 
 Data were censored at 2019-12-31, death (were applicable), emigration or 3 years. 
 
@@ -150,7 +133,7 @@ Cox proportional hazards regressions were
 used to model the time to first event analysis and negative 
 binomial regression including the log of time as an offset in the model for 
 the repeated events. The models were partly crude and partly adjusted for variables 
-indicated in Table \ref{tab:tab1ref}.
+indicated in Table \ref{tab:tab1mra}.
 
 ```{r, child = "../src/treatdisccoxreg.Rmd"}
 

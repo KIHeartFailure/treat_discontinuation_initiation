@@ -112,7 +112,7 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
   } else {
     out <- rbind(inc, c("ref", hrcrude), c("ref", hradj))
   }
-  
+
   if (rep) out <- data.frame(rep(name, 3), c("No event, sum py, incidence per 1000 py", "Crude IRR (95% CI), p", "Adjusted IRR (95% CI), p"), out)
   if (!rep) out <- data.frame(rep(name, 3), c("No event, sum py, incidence per 1000 py", "Crude HR (95% CI), p", "Adjusted HR (95% CI), p"), out)
 
@@ -132,12 +132,12 @@ funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname) {
   rbbl8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd/8 mo")
 
   rloop <- funccoxreg(
-    time = time2, event = event2, rep = rep2, 
+    time = time2, event = event2, rep = rep2,
     efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
     valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics"
   )
   rloop8m <- funccoxreg(
-    time = time2, event = event2, rep = rep2, 
+    time = time2, event = event2, rep = rep2,
     efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
     valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics 2 dd/8 mo"
   )
@@ -152,12 +152,12 @@ funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname) {
   mrbbl8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd/8 mo")
 
   mrloop <- funccoxreg(
-    time = time2, event = event2, rep = rep2, 
+    time = time2, event = event2, rep = rep2,
     efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
     valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics"
   )
   mrloop8m <- funccoxreg(
-    time = time2, event = event2, rep = rep2, 
+    time = time2, event = event2, rep = rep2,
     efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
     valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics 2 dd/8 mo"
   )
@@ -169,12 +169,12 @@ funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname) {
   pmra8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFpEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo")
 
   ploop <- funccoxreg(
-    time = time2, event = event2, rep = rep2, 
+    time = time2, event = event2, rep = rep2,
     efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
     valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics"
   )
   ploop8m <- funccoxreg(
-    time = time2, event = event2, rep = rep2, 
+    time = time2, event = event2, rep = rep2,
     efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
     valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics 2 dd/8 mo"
   )
@@ -195,7 +195,7 @@ funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname) {
   ## fix in order to use escape = TRUE
   colnames(ovall) <- sanitize_text(c("Prior medication", "Model", rep(c("No treatment", "Treatment"), 3)))
 
- default_kable(ovall,
+  default_kable(ovall,
     caption = paste0("Treatment discontinuation (MRA, RASi, Bbl)/initiation (Loopdiuretics) - ", eventname),
     escape = TRUE
   ) %>%
@@ -257,4 +257,20 @@ funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_nohospnoncv3y", rep
 ```{r treatdisccoxreghosphfrep, cache=cacheon, dependson="treatdisccoxreg"}
 
 funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_nohosphf3y", rep2 = TRUE, eventname = "HF hospitalization within 3 years")
+```
+
+```{r treatdisccoxregdeathhosphf, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(
+  time2 = "sos_outtime_hosphf3y", event2 = "sos_out_deathhosphf3y",
+  eventname = "All-cause mortality/first HF hospitalization within 3 years"
+)
+```
+
+```{r treatdisccoxregdeathcvhosphfp, cache=cacheon, dependson="treatdisccoxreg"}
+
+funccoxreg2(
+  time2 = "sos_outtime_hosphf3y", event2 = "sos_out_deathcvhosphf3y",
+  eventname = "CV mortality/first HF hospitalization within 3 years"
+)
 ```

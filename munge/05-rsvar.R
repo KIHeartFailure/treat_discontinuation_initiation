@@ -93,8 +93,9 @@ rsdata <- rsdata %>%
       TRUE ~ "No"
     ),
 
-    sos_com_ihd = case_when(
+    shf_sos_com_ihd = case_when(
       sos_com_ihd == "Yes" |
+        shf_revasc == "Yes" |
         sos_com_pci == "Yes" |
         sos_com_cabg == "Yes" ~ "Yes",
       TRUE ~ "No"
@@ -111,6 +112,13 @@ rsdata <- rsdata %>%
         sos_com_diabetes == "Yes" ~ "Yes",
       TRUE ~ "No"
     ),
+    
+    shf_sos_com_valvular = case_when(
+      shf_valvedisease == "Yes" |
+        sos_com_valvular == "Yes" ~ "Yes",
+      TRUE ~ "No"
+    ),
+    
     # Outcomes
 
     # limit to 3 yrs
@@ -129,7 +137,15 @@ rsdata <- rsdata %>%
     sos_out_deathcv3y = if_else(sos_outtime_death >= 365 * 3, "No", as.character(sos_out_deathcv)),
     sos_out_deathnoncv3y = if_else(sos_outtime_death >= 365 * 3, "No", as.character(sos_out_deathnoncv)),
     sos_out_death3y = if_else(sos_outtime_death >= 365 * 3, "No", as.character(sos_out_death)),
-    sos_outtime_death3y = if_else(sos_outtime_death >= 365 * 3, 365, sos_outtime_death)
+    sos_outtime_death3y = if_else(sos_outtime_death >= 365 * 3, 365, sos_outtime_death),
+    
+    # combined
+    sos_out_deathhosphf3y = case_when(sos_out_death3y == "Yes" | 
+                                        sos_out_hosphf3y == "Yes" ~ "Yes", 
+                                      TRUE ~ "No"),
+    sos_out_deathcvhosphf3y = case_when(sos_out_deathcv3y == "Yes" | 
+                                          sos_out_hosphf3y == "Yes" ~ "Yes", 
+                                      TRUE ~ "No"),
   )
 
 
