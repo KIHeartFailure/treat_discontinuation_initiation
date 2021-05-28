@@ -10,6 +10,57 @@ rsdata <- create_sosvar(
   diavar = HDIA,
   type = "out",
   noof = TRUE,
+  name = "nohosphf6m",
+  stoptime = 365.25 / 2,
+  diakod = " I110| I130| I132| I255| I420| I423| I425| I426| I427| I428| I429| I43| I50| J81| K761| R57",
+  censdate = censdtm,
+  warnings = TRUE,
+  meta_reg = "NPR (in)"
+)
+
+rsdata <- create_sosvar(
+  sosdata = patreg %>% filter(sos_source == "sv"),
+  cohortdata = rsdata,
+  patid = LopNr,
+  indexdate = shf_indexdtm,
+  sosdate = INDATUM,
+  diavar = HDIA,
+  type = "out",
+  noof = TRUE,
+  name = "nohosphf1y",
+  stoptime = 365.25,
+  diakod = " I110| I130| I132| I255| I420| I423| I425| I426| I427| I428| I429| I43| I50| J81| K761| R57",
+  censdate = censdtm,
+  warnings = TRUE,
+  meta_reg = "NPR (in)"
+)
+
+rsdata <- create_sosvar(
+  sosdata = patreg %>% filter(sos_source == "sv"),
+  cohortdata = rsdata,
+  patid = LopNr,
+  indexdate = shf_indexdtm,
+  sosdate = INDATUM,
+  diavar = HDIA,
+  type = "out",
+  noof = TRUE,
+  name = "nohosphf2y",
+  stoptime = 2 * 365.25,
+  diakod = " I110| I130| I132| I255| I420| I423| I425| I426| I427| I428| I429| I43| I50| J81| K761| R57",
+  censdate = censdtm,
+  warnings = TRUE,
+  meta_reg = "NPR (in)"
+)
+
+rsdata <- create_sosvar(
+  sosdata = patreg %>% filter(sos_source == "sv"),
+  cohortdata = rsdata,
+  patid = LopNr,
+  indexdate = shf_indexdtm,
+  sosdate = INDATUM,
+  diavar = HDIA,
+  type = "out",
+  noof = TRUE,
   name = "nohosphf3y",
   stoptime = 3 * 365.25,
   diakod = " I110| I130| I132| I255| I420| I423| I425| I426| I427| I428| I429| I43| I50| J81| K761| R57",

@@ -20,6 +20,10 @@ lmtreats <- function(atc, treatname) {
   treatnameprior <- paste0("ddr_", treatname, "_prior")
   treatnameprior8m <- paste0("ddr_", treatname, "_prior8m")
   treatnamepost <- paste0("ddr_", treatname, "_post")
+  treatnamepost6m <- paste0("ddr_", treatname, "_post6m")
+  treatnamepost1y <- paste0("ddr_", treatname, "_post1y")
+  treatnamepost2y <- paste0("ddr_", treatname, "_post2y")
+  treatnamepost3y <- paste0("ddr_", treatname, "_post3y")
 
   lmtmpprior <- lmtmp2 %>%
     filter(diff >= -30.5 * 6, diff <= -1) %>%
@@ -49,13 +53,45 @@ lmtreats <- function(atc, treatname) {
     mutate(!!treatnamepost := 1) %>%
     select(LopNr, !!sym(treatnamepost))
 
+  lmtmppost6m <- lmtmp2 %>%
+    filter(diff <= 365.25, diff >= 365.25 / 2) %>%
+    group_by(LopNr) %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(!!treatnamepost6m := 1) %>%
+    select(LopNr, !!sym(treatnamepost6m))
+
+  lmtmppost1y <- lmtmp2 %>%
+    filter(diff <= 365.25 * 1.5, diff >= 365.25) %>%
+    group_by(LopNr) %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(!!treatnamepost1y := 1) %>%
+    select(LopNr, !!sym(treatnamepost1y))
+
+  lmtmppost2y <- lmtmp2 %>%
+    filter(diff <= 365.25 * 2.5, diff >= 365.25 * 2) %>%
+    group_by(LopNr) %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(!!treatnamepost2y := 1) %>%
+    select(LopNr, !!sym(treatnamepost2y))
+
+  lmtmppost3y <- lmtmp2 %>%
+    filter(diff <= 365.25 * 3.5, diff >= 365.25 * 3) %>%
+    group_by(LopNr) %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(!!treatnamepost3y := 1) %>%
+    select(LopNr, !!sym(treatnamepost3y))
+
   lmtmpall <- Reduce(
     function(...) {
       full_join(...,
         by = "LopNr"
       )
     },
-    list(lmtmpprior, lmtmppriorsens, lmtmppost)
+    list(lmtmpprior, lmtmppriorsens, lmtmppost, lmtmppost6m, lmtmppost1y, lmtmppost2y, lmtmppost3y)
   )
 
   rsdata <<- left_join(
@@ -67,10 +103,18 @@ lmtreats <- function(atc, treatname) {
       !!treatnameprior := replace_na(!!sym(treatnameprior), 0),
       !!treatnameprior8m := replace_na(!!sym(treatnameprior8m), 0),
       !!treatnamepost := replace_na(!!sym(treatnamepost), 0),
+      !!treatnamepost6m := replace_na(!!sym(treatnamepost6m), 0),
+      !!treatnamepost1y := replace_na(!!sym(treatnamepost1y), 0),
+      !!treatnamepost2y := replace_na(!!sym(treatnamepost2y), 0),
+      !!treatnamepost3y := replace_na(!!sym(treatnamepost3y), 0),
 
       !!treatnameprior := factor(!!sym(treatnameprior), levels = 0:1, labels = c("No", "Yes")),
       !!treatnameprior8m := factor(!!sym(treatnameprior8m), levels = 0:1, labels = c("No", "Yes")),
-      !!treatnamepost := factor(!!sym(treatnamepost), levels = 0:1, labels = c("No", "Yes"))
+      !!treatnamepost := factor(!!sym(treatnamepost), levels = 0:1, labels = c("No", "Yes")),
+      !!treatnamepost6m := factor(!!sym(treatnamepost6m), levels = 0:1, labels = c("No", "Yes")),
+      !!treatnamepost1y := factor(!!sym(treatnamepost1y), levels = 0:1, labels = c("No", "Yes")),
+      !!treatnamepost2y := factor(!!sym(treatnamepost2y), levels = 0:1, labels = c("No", "Yes")),
+      !!treatnamepost3y := factor(!!sym(treatnamepost3y), levels = 0:1, labels = c("No", "Yes"))
     )
 
   metatmp <- c(treatname, stringr::str_replace_all(atc, "\\|", ","))

@@ -1,0 +1,175 @@
+```{r rephosp, cache=cacheon}
+
+# add 1 to all hosp in order to account to initial hospitalization
+rsdata <- rsdata %>%
+  mutate(
+    sos_out_nohosphf6m_cat = factor(case_when(
+      sos_out_nohosphf6m == 0 ~ 1,
+      sos_out_nohosphf6m <= 2 ~ 2,
+      sos_out_nohosphf6m <= 5 ~ 3,
+      sos_out_nohosphf6m >= 6 ~ 4
+    ),
+    levels = 1:4,
+    labels = c("1", "2-3", "4-6", ">=7")
+    ),
+    sos_out_nohosphf1y_cat = factor(case_when(
+      sos_out_nohosphf1y == 0 ~ 1,
+      sos_out_nohosphf1y <= 2 ~ 2,
+      sos_out_nohosphf1y <= 5 ~ 3,
+      sos_out_nohosphf1y >= 6 ~ 4
+    ),
+    levels = 1:4,
+    labels = c("1", "2-3", "4-6", ">=7")
+    ),
+    sos_out_nohosphf2y_cat = factor(case_when(
+      sos_out_nohosphf2y == 0 ~ 1,
+      sos_out_nohosphf2y <= 2 ~ 2,
+      sos_out_nohosphf2y <= 5 ~ 3,
+      sos_out_nohosphf2y >= 6 ~ 4
+    ),
+    levels = 1:4,
+    labels = c("1", "2-3", "4-6", ">=7")
+    ),
+    sos_out_nohosphf3y_cat = factor(case_when(
+      sos_out_nohosphf3y == 0 ~ 1,
+      sos_out_nohosphf3y <= 2 ~ 2,
+      sos_out_nohosphf3y <= 5 ~ 3,
+      sos_out_nohosphf3y >= 6 ~ 4
+    ),
+    levels = 1:4,
+    labels = c("1", "2-3", "4-6", ">=7")
+    )
+  )
+
+reptreatbar <- function(data, treat, ymax = 100) {
+  treat6m <- paste0("ddr_", treat, "_post6m")
+  treat1y <- paste0("ddr_", treat, "_post1y")
+  treat2y <- paste0("ddr_", treat, "_post2y")
+  treat3y <- paste0("ddr_", treat, "_post3y")
+
+  bardata6m <- data %>%
+    filter(
+      sos_outtime_death >= 365
+    ) %>%
+    group_by(sos_out_nohosphf6m_cat) %>%
+    count(!!sym(treat6m)) %>%
+    mutate(
+      freq = (n / sum(n)) * 100,
+      ntot = sum(n)
+    ) %>%
+    ungroup() %>%
+    filter(!!sym(treat6m) == "No") %>%
+    mutate(time = 0.5) %>%
+    rename(sos_out_nohosphfall = sos_out_nohosphf6m_cat) %>%
+    select(sos_out_nohosphfall, time, ntot, freq)
+
+  bardata1y <- data %>%
+    filter(
+      sos_outtime_death >= 365 * 1.5
+    ) %>%
+    group_by(sos_out_nohosphf1y_cat) %>%
+    count(!!sym(treat1y)) %>%
+    mutate(
+      freq = (n / sum(n)) * 100,
+      ntot = sum(n)
+    ) %>%
+    ungroup() %>%
+    filter(!!sym(treat1y) == "No") %>%
+    mutate(time = 1) %>%
+    rename(sos_out_nohosphfall = sos_out_nohosphf1y_cat) %>%
+    select(sos_out_nohosphfall, time, ntot, freq)
+
+  bardata2y <- data %>%
+    filter(
+      sos_outtime_death >= 365 * 2.5
+    ) %>%
+    group_by(sos_out_nohosphf2y_cat) %>%
+    count(!!sym(treat2y)) %>%
+    mutate(
+      freq = (n / sum(n)) * 100,
+      ntot = sum(n)
+    ) %>%
+    ungroup() %>%
+    filter(!!sym(treat2y) == "No") %>%
+    mutate(time = 2) %>%
+    rename(sos_out_nohosphfall = sos_out_nohosphf2y_cat) %>%
+    select(sos_out_nohosphfall, time, ntot, freq)
+
+  bardata3y <- data %>%
+    filter(
+      sos_outtime_death >= 365 * 3.5
+    ) %>%
+    group_by(sos_out_nohosphf3y_cat) %>%
+    count(!!sym(treat3y)) %>%
+    mutate(
+      freq = (n / sum(n)) * 100,
+      ntot = sum(n)
+    ) %>%
+    ungroup() %>%
+    filter(!!sym(treat3y) == "No") %>%
+    mutate(time = 3) %>%
+    rename(sos_out_nohosphfall = sos_out_nohosphf3y_cat) %>%
+    select(sos_out_nohosphfall, time, ntot, freq)
+
+  bardataall <- bind_rows(bardata6m, bardata1y, bardata2y, bardata3y) %>%
+    mutate(time = factor(time, levels = c(0.5, 1:3), labels = c("6 mo", "1 yr", "2 yrs", "3 yrs")))
+
+  ggplot(
+    bardataall,
+    aes(x = time, y = freq, fill = sos_out_nohosphfall)
+  ) +
+    geom_bar(stat = "identity", position = position_dodge()) +
+    # geom_col() +
+    ylim(0, ymax) +
+    # theme(axis.text.x=element_text(angle=90, hjust=1)) ## for checking
+    # annotate(geom = "text", x = 1:6, y = -5, label = rep(c("Women", "Men"), 3), size = 4) +
+    # annotate(geom = "text", x = c(1.5, 3.5, 5.5), y = -11, label = unique(bardata$shf_ef_cat), size = 4) +
+    scale_fill_manual("Number of HF hospitalizations",
+      values = global_kicols
+    ) +
+    theme_minimal() +
+    ylab("Percent discontinued") +
+    xlab("Time after first HF hospitalization") +
+    geom_text(aes(label = ntot),
+      vjust = -1, color = "black",
+      position = position_dodge(.9), size = 3
+    ) 
+    #theme(
+      # legend.position = "none",
+      # panel.grid.major = element_blank()) +
+      #panel.grid.major = element_line(colour = "grey", size = 0.5),
+      #panel.grid.minor = element_blank()
+      # axis.title.x = element_blank(),
+      # axis.text.x = element_blank(),
+      # axis.ticks.x = element_blank()
+    #) +
+    #scale_y_continuous(minor_breaks = seq(0, ymax, 5), breaks = seq(0, ymax, 10))
+    #scale_x_discrete(breaks = NULL) +
+    
+}
+```
+
+
+```{r rephospmra, fig.cap = "Repeated HF hospitalizations vs discontinuation of MRA (HFrEF & HFpEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
+reptreatbar(data = rsdata %>% filter(
+  shf_ef_cat %in% c("HFrEF", "HFpEF"),
+  ddr_mra_prior == "Yes",
+  sos_location == "HF in-patient"
+), treat = "mra", ymax = 50)
+```
+
+```{r rephospras, fig.cap = "Repeated HF hospitalizations vs discontinuation of RASi (HFrEF & HFmrEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
+reptreatbar(data = rsdata %>% filter(
+  shf_ef_cat %in% c("HFrEF", "HFmrEF"),
+  ddr_rasi_prior == "Yes",
+  sos_location == "HF in-patient"
+), "rasi", ymax = 30)
+```
+
+```{r rephospbbl, fig.cap = "Repeated HF hospitalizations vs discontinuation of Bbl (HFrEF & HFmrEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
+reptreatbar(data = rsdata %>% filter(
+  shf_ef_cat %in% c("HFrEF", "HFmrEF"),
+  ddr_bbl_prior == "Yes",
+  sos_location == "HF in-patient"
+), "bbl", ymax = 20)
+```

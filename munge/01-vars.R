@@ -140,5 +140,4 @@ modvars <- c(
   "scb_famtype",
   "scb_education",
   "scb_dispincome_cat2"
-  
 )

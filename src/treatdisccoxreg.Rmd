@@ -5,7 +5,7 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
   # incidence
   if (!rep) {
     ev <- rsdata %>%
-      filter(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre) %>%
+      filter(sos_location == "HF in-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre) %>%
       group_by(!!sym(medpost)) %>%
       summarise(
         ev = sum(!!sym(event) == "Yes"),
@@ -14,7 +14,7 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
   }
   if (rep) {
     ev <- rsdata %>%
-      filter(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre) %>%
+      filter(sos_location == "HF in-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre) %>%
       group_by(!!sym(medpost)) %>%
       summarise(
         ev = sum(!!sym(event)),
@@ -23,7 +23,7 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
   }
 
   s <- rsdata %>%
-    filter(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre) %>%
+    filter(sos_location == "HF in-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre) %>%
     group_by(!!sym(medpost)) %>%
     summarise(
       s = sum(!!sym(time) / 365.25),
@@ -43,7 +43,7 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
     # crude cox reg
 
     mod <- coxph(formula(paste0("Surv(", time, ", ", event, " == 'Yes') ~ relevel(", medpost, ", ref = '", valmedrefpost, "')")),
-      data = rsdata %>% filter(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+      data = rsdata %>% filter(sos_location == "HF in-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
     )
     smod <- summary(mod)
 
@@ -61,7 +61,7 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
       medpost, ", ref = '", valmedrefpost, "') + ", paste(modvars, collapse = " + ")
     )),
     data = imp,
-    subset = expr(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+    subset = expr(sos_location == "HF in-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
     )
     asmod <- summary(pool(amod))
 
@@ -77,7 +77,7 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
     # neg binomial regression
     ## crude
     mod <- glm.nb(formula(paste0(event, " ~ relevel(", medpost, ", ref = '", valmedrefpost, "') + offset(log(", time, "))")),
-      data = rsdata %>% filter(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+      data = rsdata %>% filter(sos_location == "HF in-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
     )
 
     smod <- summary(mod)
@@ -94,7 +94,7 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
       paste(modvars, collapse = " + ")
     )),
     data = imp,
-    subset = expr(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+    subset = expr(sos_location == "HF in-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
     )
 
     asmod <- summary(pool(amod))

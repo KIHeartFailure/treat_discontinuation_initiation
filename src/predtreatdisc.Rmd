@@ -5,7 +5,7 @@ funcpred <- function(efcat, medpre, medpost, valmedpre = "Yes", valmedpost = "No
     medpost, "=='", valmedpost, "' ~ ", paste(modvars, collapse = " + ")
   )),
   data = imp,
-  subset = expr(shf_location == "In-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
+  subset = expr(sos_location == "HF in-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre)
   )
   asmod <- summary(pool(amod))
 
@@ -17,9 +17,9 @@ funcpred <- function(efcat, medpre, medpost, valmedpre = "Yes", valmedpost = "No
   out <- tibble(
     Variable = terms,
     !!sym(name) := paste0(
-      fn(exp((asmod$estimate[2:nval]) * units), dig = 1),
-      " (", fn(exp((asmod$estimate[2:nval] - global_z05 * asmod$std.error[2:nval]) * units), dig = 1),
-      "-", fn(exp((asmod$estimate[2:nval] + global_z05 * asmod$std.error[2:nval]) * units), dig = 1), "), ",
+      fn(exp(asmod$estimate[2:nval]) ^ units, dig = 1),
+      " (", fn(exp(asmod$estimate[2:nval] - global_z05 * asmod$std.error[2:nval]) ^ units, dig = 1),
+      "-", fn(exp(asmod$estimate[2:nval] + global_z05 * asmod$std.error[2:nval]) ^ units, dig = 1), "), ",
       fn(asmod$p.value[2:nval], dig = 3, p = TRUE)
     )
   )
@@ -123,24 +123,30 @@ symbol = "Presented in units of 10"
 
 ref <- funcpred(
   efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes")
+  valmedpre = "No", valmedpost = "Yes"
+)
 ref8m <- funcpred(
   efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "HFrEF (2 dd/8mo)")
+  valmedpre = "No", valmedpost = "Yes", name = "HFrEF (2 dd/8mo)"
+)
 
 mref <- funcpred(
   efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes")
+  valmedpre = "No", valmedpost = "Yes"
+)
 mref8m <- funcpred(
   efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "HFmrEF (2 dd/8mo)")
+  valmedpre = "No", valmedpost = "Yes", name = "HFmrEF (2 dd/8mo)"
+)
 
 pef <- funcpred(
   efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes")
+  valmedpre = "No", valmedpost = "Yes"
+)
 pef8m <- funcpred(
   efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "HFpEF (2 dd/8mo)")
+  valmedpre = "No", valmedpost = "Yes", name = "HFpEF (2 dd/8mo)"
+)
 
 all <- Reduce(
   function(...) {

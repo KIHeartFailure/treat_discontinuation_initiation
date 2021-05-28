@@ -85,6 +85,10 @@ Post medication is defined as 1 dispensed prescription from at index date until 
 default_kable(metaout, caption = "Additional outcomes from NPR")
 ```
 
+HF hospitalized patients (cases) are defined as patients with a date of discharge with a diagnosis for HF (ICD-10 I110, I130, I132, I255, I420, I423, I425, I426, I427, I428, I429, I43, I50) in main position (HDIA) within 14 days prior to the index date in SwedeHF. 
+
+Out-patients are defined as patients without a date of discharge for a hospitalization for any cause within 14 days prior to the index date in SwedeHF. They should also be registred as Out-patients in SwedeHF. 
+
 # Statistical analysis 
 
 ## General
@@ -108,18 +112,40 @@ Table \ref{tab:tab1mra}.
 ## Treatment discontinuation/initiation 
 
 A logistic regression is performed separately for the 3 EF groups for patients 
-with the respective medications prior to the hospitalization/visit, with discontinuation/initiation as the outcome. 
-Adjustment is performed for variables indicated in \ref{tab:tab1mra}. 
+with the respective medications prior to the hospitalization/visit, with discontinuation 
+(for MRA, RASi, Bbl)/initiation (Loopdiuretics) as the outcome. 
+Adjustment is performed for variables indicated in \ref{tab:tab1all}.  
 
 ```{r, child = "../src/treatdisclogreg.Rmd"}
 
 ```
 
+\clearpage 
+
+## Repeated hospitalizations
+
+The barplot presents the number HF hospitalizations (defined as main diagnosis in NPR) 
+from index until the respective time point vs discontinuation of the respective treatment 
+(including the index hospitalization). 
+The treatment is defined as 1 dispensed prescription within 6 months after 
+the respective time point. Patients without time point + 6 months follow-up 
+are excluded (as well as patients without prior treatment and patients that are 
+not hospitalized at index (controls). Eg, when looking 
+at 1 year it is number of HF hospitalizations within 1 year after index vs 
+treatment within 1-1.5 years after index and excluding patients without 1.5 years 
+follow-up and without the treatment prior to index. 
+
+```{r, child = "../src/rephosp.Rmd"}
+
+```
+
+\clearpage 
+
 ## Predictors of dicontinuation/initiation 
 
 A logistic regression is performed separately for the 3 EF groups for patients 
 with the respective medications prior to the hospitalization, with discontinuation/initiation as the outcome. 
-Only patients hospitalized are included (so the controls are dropped from this analysis). 
+Only patients hospitalized for HF are included (so the controls are dropped from this analysis). 
 
 ```{r, child = "../src/predtreatdisc.Rmd"}
 
