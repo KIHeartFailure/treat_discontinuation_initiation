@@ -41,89 +41,69 @@ rsdata <- rsdata %>%
     )
   )
 
+bardatafunc <- function(data2, treat2, time, minfollowup, timevalue) {
+  treatvar <- paste0("ddr_", treat2, "_post", time)
+  hfhospvar <- paste0("sos_out_nohosphf", time, "_cat")
+
+  bardata <- data2 %>%
+    filter(
+      sos_outtime_death >= minfollowup
+    ) %>%
+    group_by(!!sym(hfhospvar)) %>%
+    count(!!sym(treatvar)) %>%
+    mutate(
+      freq = (n / sum(n)) * 100,
+      ntot = sum(n)
+    ) %>%
+    ungroup() %>%
+    filter(!!sym(treatvar) == "No") %>%
+    mutate(time = timevalue) %>%
+    rename(sos_out_nohosphfall = !!sym(hfhospvar)) %>%
+    select(sos_out_nohosphfall, time, ntot, freq)
+}
+
 reptreatbar <- function(data, treat, ymax = 100) {
-  treat6m <- paste0("ddr_", treat, "_post6m")
-  treat1y <- paste0("ddr_", treat, "_post1y")
-  treat2y <- paste0("ddr_", treat, "_post2y")
-  treat3y <- paste0("ddr_", treat, "_post3y")
+  bardata6m <- bardatafunc(
+    data2 = data,
+    treat2 = treat,
+    time = "6m",
+    minfollowup = 365,
+    timevalue = 0
+  )
 
-  bardata6m <- data %>%
-    filter(
-      sos_outtime_death >= 365
-    ) %>%
-    group_by(sos_out_nohosphf6m_cat) %>%
-    count(!!sym(treat6m)) %>%
-    mutate(
-      freq = (n / sum(n)) * 100,
-      ntot = sum(n)
-    ) %>%
-    ungroup() %>%
-    filter(!!sym(treat6m) == "No") %>%
-    mutate(time = 0.5) %>%
-    rename(sos_out_nohosphfall = sos_out_nohosphf6m_cat) %>%
-    select(sos_out_nohosphfall, time, ntot, freq)
+  bardata1y <- bardatafunc(
+    data2 = data,
+    treat2 = treat,
+    time = "1y",
+    minfollowup = 365 * 1.5,
+    timevalue = 1
+  )
 
-  bardata1y <- data %>%
-    filter(
-      sos_outtime_death >= 365 * 1.5
-    ) %>%
-    group_by(sos_out_nohosphf1y_cat) %>%
-    count(!!sym(treat1y)) %>%
-    mutate(
-      freq = (n / sum(n)) * 100,
-      ntot = sum(n)
-    ) %>%
-    ungroup() %>%
-    filter(!!sym(treat1y) == "No") %>%
-    mutate(time = 1) %>%
-    rename(sos_out_nohosphfall = sos_out_nohosphf1y_cat) %>%
-    select(sos_out_nohosphfall, time, ntot, freq)
+  bardata2y <- bardatafunc(
+    data2 = data,
+    treat2 = treat,
+    time = "2y",
+    minfollowup = 365 * 2.5,
+    timevalue = 2
+  )
 
-  bardata2y <- data %>%
-    filter(
-      sos_outtime_death >= 365 * 2.5
-    ) %>%
-    group_by(sos_out_nohosphf2y_cat) %>%
-    count(!!sym(treat2y)) %>%
-    mutate(
-      freq = (n / sum(n)) * 100,
-      ntot = sum(n)
-    ) %>%
-    ungroup() %>%
-    filter(!!sym(treat2y) == "No") %>%
-    mutate(time = 2) %>%
-    rename(sos_out_nohosphfall = sos_out_nohosphf2y_cat) %>%
-    select(sos_out_nohosphfall, time, ntot, freq)
-
-  bardata3y <- data %>%
-    filter(
-      sos_outtime_death >= 365 * 3.5
-    ) %>%
-    group_by(sos_out_nohosphf3y_cat) %>%
-    count(!!sym(treat3y)) %>%
-    mutate(
-      freq = (n / sum(n)) * 100,
-      ntot = sum(n)
-    ) %>%
-    ungroup() %>%
-    filter(!!sym(treat3y) == "No") %>%
-    mutate(time = 3) %>%
-    rename(sos_out_nohosphfall = sos_out_nohosphf3y_cat) %>%
-    select(sos_out_nohosphfall, time, ntot, freq)
+  bardata3y <- bardatafunc(
+    data2 = data,
+    treat2 = treat,
+    time = "3y",
+    minfollowup = 365 * 3.5,
+    timevalue = 3
+  )
 
   bardataall <- bind_rows(bardata6m, bardata1y, bardata2y, bardata3y) %>%
-    mutate(time = factor(time, levels = c(0.5, 1:3), labels = c("6 mo", "1 yr", "2 yrs", "3 yrs")))
+    mutate(time = factor(time, levels = c(0:3), labels = c("6 mo", "1 yr", "2 yrs", "3 yrs")))
 
   ggplot(
     bardataall,
     aes(x = time, y = freq, fill = sos_out_nohosphfall)
   ) +
     geom_bar(stat = "identity", position = position_dodge()) +
-    # geom_col() +
     ylim(0, ymax) +
-    # theme(axis.text.x=element_text(angle=90, hjust=1)) ## for checking
-    # annotate(geom = "text", x = 1:6, y = -5, label = rep(c("Women", "Men"), 3), size = 4) +
-    # annotate(geom = "text", x = c(1.5, 3.5, 5.5), y = -11, label = unique(bardata$shf_ef_cat), size = 4) +
     scale_fill_manual("Number of HF hospitalizations",
       values = global_kicols
     ) +
@@ -133,43 +113,41 @@ reptreatbar <- function(data, treat, ymax = 100) {
     geom_text(aes(label = ntot),
       vjust = -1, color = "black",
       position = position_dodge(.9), size = 3
-    ) 
-    #theme(
-      # legend.position = "none",
-      # panel.grid.major = element_blank()) +
-      #panel.grid.major = element_line(colour = "grey", size = 0.5),
-      #panel.grid.minor = element_blank()
-      # axis.title.x = element_blank(),
-      # axis.text.x = element_blank(),
-      # axis.ticks.x = element_blank()
-    #) +
-    #scale_y_continuous(minor_breaks = seq(0, ymax, 5), breaks = seq(0, ymax, 10))
-    #scale_x_discrete(breaks = NULL) +
-    
+    )
 }
 ```
 
 
 ```{r rephospmra, fig.cap = "Repeated HF hospitalizations vs discontinuation of MRA (HFrEF & HFpEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
-reptreatbar(data = rsdata %>% filter(
-  shf_ef_cat %in% c("HFrEF", "HFpEF"),
-  ddr_mra_prior == "Yes",
-  sos_location == "HF in-patient"
-), treat = "mra", ymax = 50)
+reptreatbar(
+  data = rsdata %>% filter(
+    shf_ef_cat %in% c("HFrEF", "HFpEF"),
+    ddr_mra_prior == "Yes",
+    sos_location == "HF in-patient"
+  ),
+  treat = "mra", ymax = 50
+)
 ```
 
 ```{r rephospras, fig.cap = "Repeated HF hospitalizations vs discontinuation of RASi (HFrEF & HFmrEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
-reptreatbar(data = rsdata %>% filter(
-  shf_ef_cat %in% c("HFrEF", "HFmrEF"),
-  ddr_rasi_prior == "Yes",
-  sos_location == "HF in-patient"
-), "rasi", ymax = 30)
+reptreatbar(
+  data =
+    rsdata %>% filter(
+      shf_ef_cat %in% c("HFrEF", "HFmrEF"),
+      ddr_rasi_prior == "Yes",
+      sos_location == "HF in-patient"
+    ),
+  treat = "rasi", ymax = 35
+)
 ```
 
 ```{r rephospbbl, fig.cap = "Repeated HF hospitalizations vs discontinuation of Bbl (HFrEF & HFmrEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
-reptreatbar(data = rsdata %>% filter(
-  shf_ef_cat %in% c("HFrEF", "HFmrEF"),
-  ddr_bbl_prior == "Yes",
-  sos_location == "HF in-patient"
-), "bbl", ymax = 20)
+reptreatbar(
+  data = rsdata %>% filter(
+    shf_ef_cat %in% c("HFrEF", "HFmrEF"),
+    ddr_bbl_prior == "Yes",
+    sos_location == "HF in-patient"
+  ),
+  "bbl", ymax = 20
+)
 ```

@@ -100,8 +100,9 @@ tab1func <- function(data, title) {
       footnote2 = if_else(str_detect(var_tmp, "sos_"), footnote_marker_symbol(2), ""),
       footnote3 = if_else(str_detect(var_tmp, "^scb_"), footnote_marker_symbol(3), ""),
       footnote4 = if_else(str_detect(var_tmp, "^scb_dispincome_cat"), footnote_marker_symbol(4), ""),
-      footnote5 = if_else(var_tmp %in% impvars, footnote_marker_symbol(5), ""),
-      footnote6 = if_else(var_tmp %in% modvars, footnote_marker_symbol(6), "")
+      footnote5 = if_else(str_detect(var_tmp, "^shf_ntprobnp_cat"), footnote_marker_symbol(5), ""),
+      footnote6 = if_else(var_tmp %in% impvars, footnote_marker_symbol(6), ""),
+      footnote7 = if_else(var_tmp %in% modvars, footnote_marker_symbol(7), "")
     ) %>%
     unite(footnote, starts_with("footnote"), sep = "") %>%
     mutate(
@@ -135,6 +136,7 @@ tab1func <- function(data, title) {
       "Source: NPR",
       "Source: SCB",
       "Medium within index year",
+      "Medium within EF",
       "Included in multiple imputation model",
       "Adjusted for in logistic/cox regression models"
     )

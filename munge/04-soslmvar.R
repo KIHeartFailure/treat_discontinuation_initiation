@@ -45,8 +45,9 @@ lmtreats <- function(atc, treatname) {
     mutate(!!treatnameprior8m := 1) %>%
     select(LopNr, !!sym(treatnameprior8m))
 
+  ## post treatments
   lmtmppost <- lmtmp2 %>%
-    filter(diff <= 30.5 * 6, diff >= 0) %>%
+    filter(diff >= 0, diff <= 30.5 * 6) %>%
     group_by(LopNr) %>%
     slice(1) %>%
     ungroup() %>%
@@ -54,7 +55,7 @@ lmtreats <- function(atc, treatname) {
     select(LopNr, !!sym(treatnamepost))
 
   lmtmppost6m <- lmtmp2 %>%
-    filter(diff <= 365.25, diff >= 365.25 / 2) %>%
+    filter(diff >= 365.25 / 2, diff <= 365.25) %>%
     group_by(LopNr) %>%
     slice(1) %>%
     ungroup() %>%
@@ -62,7 +63,7 @@ lmtreats <- function(atc, treatname) {
     select(LopNr, !!sym(treatnamepost6m))
 
   lmtmppost1y <- lmtmp2 %>%
-    filter(diff <= 365.25 * 1.5, diff >= 365.25) %>%
+    filter(diff >= 365.25, diff <= 365.25 * 1.5) %>%
     group_by(LopNr) %>%
     slice(1) %>%
     ungroup() %>%
@@ -70,7 +71,7 @@ lmtreats <- function(atc, treatname) {
     select(LopNr, !!sym(treatnamepost1y))
 
   lmtmppost2y <- lmtmp2 %>%
-    filter(diff <= 365.25 * 2.5, diff >= 365.25 * 2) %>%
+    filter(diff >= 365.25 * 2, diff <= 365.25 * 2.5) %>%
     group_by(LopNr) %>%
     slice(1) %>%
     ungroup() %>%
@@ -78,7 +79,7 @@ lmtreats <- function(atc, treatname) {
     select(LopNr, !!sym(treatnamepost2y))
 
   lmtmppost3y <- lmtmp2 %>%
-    filter(diff <= 365.25 * 3.5, diff >= 365.25 * 3) %>%
+    filter(diff >= 365.25 * 3, diff <= 365.25 * 3.5) %>%
     group_by(LopNr) %>%
     slice(1) %>%
     ungroup() %>%

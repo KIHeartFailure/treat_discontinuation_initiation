@@ -24,7 +24,7 @@ flow <- rbind(flow, c("No missing duration of HF", nrow(rsdata)))
 
 rsdata <- rsdata %>%
   filter(shf_durationhf == ">6mo")
-flow <- rbind(flow, c("Duration of HF > 6 months", nrow(rsdata)))
+flow <- rbind(flow, c("Duration of HF > 6 months (as registred in SwedeHF)", nrow(rsdata)))
 
 rsdata <- rsdata %>%
   filter(is.na(sos_prevhosphf) | sos_prevhosphf <= 14)

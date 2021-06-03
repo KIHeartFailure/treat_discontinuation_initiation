@@ -17,9 +17,9 @@ funcpred <- function(efcat, medpre, medpost, valmedpre = "Yes", valmedpost = "No
   out <- tibble(
     Variable = terms,
     !!sym(name) := paste0(
-      fn(exp(asmod$estimate[2:nval]) ^ units, dig = 1),
-      " (", fn(exp(asmod$estimate[2:nval] - global_z05 * asmod$std.error[2:nval]) ^ units, dig = 1),
-      "-", fn(exp(asmod$estimate[2:nval] + global_z05 * asmod$std.error[2:nval]) ^ units, dig = 1), "), ",
+      fn(exp(asmod$estimate[2:nval])^units, dig = 1),
+      " (", fn(exp(asmod$estimate[2:nval] - global_z05 * asmod$std.error[2:nval])^units, dig = 1),
+      "-", fn(exp(asmod$estimate[2:nval] + global_z05 * asmod$std.error[2:nval])^units, dig = 1), "), ",
       fn(asmod$p.value[2:nval], dig = 3, p = TRUE)
     )
   )

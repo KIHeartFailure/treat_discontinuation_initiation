@@ -78,7 +78,6 @@ impvars <- c(
   "shf_map",
   "shf_heartrate",
   "shf_bmi_cat",
-  "shf_hb",
   "shf_potassium",
   "shf_gfrckdepi_cat",
   "shf_ntprobnp_cat",
@@ -97,7 +96,6 @@ impvars <- c(
   "sos_com_cancer3y",
   "sos_com_copd",
   "sos_com_bleed",
-  "sos_com_charlsonci",
 
   # treatments
   "ddr_rasi_prior",

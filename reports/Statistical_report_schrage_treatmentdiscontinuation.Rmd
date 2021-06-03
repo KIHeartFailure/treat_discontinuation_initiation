@@ -1,6 +1,5 @@
 ---
 title: 'Statistical report: Discontinuation of guideline-recommended HF treatments after a HF hospitalization'
-subtitle: 'DRAFT'
 author: 'Statistician: Lina Benson'
   
 date: "`r Sys.Date()`"
@@ -13,8 +12,6 @@ output:
 link-citations: yes
 bibliography: references.bib
 nocite: '@*'
-header-includes:
-   - \usepackage{draftwatermark}
 ---
 
 \newpage 
@@ -77,9 +74,11 @@ The median age (IQR) is `r rsdata %>% summarise(med = fn(median(shf_age), dig = 
 default_kable(metalm, caption = "Medications from DDR", scale_down = F)
 ```
 
-Prior medication is defined as 1 dispensed prescription within 6 months to 1 day prior to index date. With a sensitivity analysis of 2 dispensed prescriptions, with at least 1 day between, within 8 months to 1 day prior to index date. 
+Prior medication is defined as 1 dispensed prescription within 6 months to 1 day prior to index date. 
+A sensitivity analysis is performed defining prior medication as 2 dispensed prescriptions, with at least 1 day between, 
+within 8 months to 1 day prior to index date. 
 
-Post medication is defined as 1 dispensed prescription from at index date until 6 months after index date. 
+Post medication is defined as 1 dispensed prescription from index date until 6 months after index date. 
 
 ```{r npr}
 default_kable(metaout, caption = "Additional outcomes from NPR")
@@ -87,7 +86,7 @@ default_kable(metaout, caption = "Additional outcomes from NPR")
 
 HF hospitalized patients (cases) are defined as patients with a date of discharge with a diagnosis for HF (ICD-10 I110, I130, I132, I255, I420, I423, I425, I426, I427, I428, I429, I43, I50) in main position (HDIA) within 14 days prior to the index date in SwedeHF. 
 
-Out-patients are defined as patients without a date of discharge for a hospitalization for any cause within 14 days prior to the index date in SwedeHF. They should also be registred as Out-patients in SwedeHF. 
+Out-patients are defined as patients without a date of discharge for a hospitalization for any cause within 14 days prior to the index date in SwedeHF. They should also be registered as Out-patients in SwedeHF. 
 
 # Statistical analysis 
 
@@ -124,14 +123,14 @@ Adjustment is performed for variables indicated in \ref{tab:tab1all}.
 
 ## Repeated hospitalizations
 
-The barplot presents the number HF hospitalizations (defined as main diagnosis in NPR) 
-from index until the respective time point vs discontinuation of the respective treatment 
-(including the index hospitalization). 
+The barplot presents the number HF hospitalizations, defined as main diagnosis in NPR, 
+including the index hospitalization, 
+from index until the respective time point vs discontinuation of the respective treatment. 
 The treatment is defined as 1 dispensed prescription within 6 months after 
 the respective time point. Patients without time point + 6 months follow-up 
 are excluded (as well as patients without prior treatment and patients that are 
-not hospitalized at index (controls). Eg, when looking 
-at 1 year it is number of HF hospitalizations within 1 year after index vs 
+not hospitalized at index (controls)). E.g., when looking 
+at 1 year it is number of HF hospitalizations within 1 year from index vs 
 treatment within 1-1.5 years after index and excluding patients without 1.5 years 
 follow-up and without the treatment prior to index. 
 
@@ -141,7 +140,7 @@ follow-up and without the treatment prior to index.
 
 \clearpage 
 
-## Predictors of dicontinuation/initiation 
+## Predictors of discontinuation/initiation 
 
 A logistic regression is performed separately for the 3 EF groups for patients 
 with the respective medications prior to the hospitalization, with discontinuation/initiation as the outcome. 
@@ -151,19 +150,44 @@ Only patients hospitalized for HF are included (so the controls are dropped from
 
 ```
 
-## Outcomes after dicontinuation
+### Assumptions
 
-Data were censored at 2019-12-31, death (were applicable), emigration or 3 years. 
+Outliers were investigated with Cook's distance and multicollinearity 
+with the variance inflation factor.
+=> No action deemed necessary. 
+
+## Outcomes after discontinuation
+
+Data were censored at 2019-12-31, death (where applicable), emigration or 3 years. 
 
 Cox proportional hazards regressions were 
 used to model the time to first event analysis and negative 
 binomial regression including the log of time as an offset in the model for 
 the repeated events. The models were partly crude and partly adjusted for variables 
-indicated in Table \ref{tab:tab1mra}.
+indicated in Table \ref{tab:tab1all} and are performed separately in the respective EF 
+groups and on those with the respective prior treatments. 
+
+The median (min-max) follow-up among the cases is `r rsdata %>% 
+filter(sos_location == "HF in-patient") %>%
+summarise(med = fn(median(sos_outtime_death3y / 365), dig = 1),
+                                             min = fn(min(sos_outtime_death3y / 365), dig = 1),
+                                             max = fn(max(sos_outtime_death3y / 365), dig = 1)) %>%
+                                   mutate(out = paste0(med, " (", min, "-", max, ")")) %>%
+                                   pull(out)` years for a total of 
+                                   `r rsdata %>% 
+filter(sos_location == "HF in-patient") %>% summarise(sumpy = fn(sum(sos_outtime_death3y) / 365, dig = 0)) %>%
+                                   pull(sumpy)` patient-years of follow-up.
+
 
 ```{r, child = "../src/treatdisccoxreg.Rmd"}
 
 ```
+
+### Assumptions
+
+The proportional hazards assumption was investigated using the scaled Schoenfeld 
+residuals and linearity for the continuous variable age for the outcome CV mortality/first HF hospitalization within 3 years. 
+=> No action deemed necessary. 
 
 \clearpage
 \newpage
