@@ -48,7 +48,7 @@ cacheon <- TRUE
 
 ## Data source
 
-SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.3. 
+SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.4. 
 
 ## Inclusion/exclusion criteria
 
@@ -83,10 +83,6 @@ Post medication is defined as 1 dispensed prescription from index date until 6 m
 ```{r npr}
 default_kable(metaout, caption = "Additional outcomes from NPR")
 ```
-
-HF hospitalized patients (cases) are defined as patients with a date of discharge with a diagnosis for HF (ICD-10 I110, I130, I132, I255, I420, I423, I425, I426, I427, I428, I429, I43, I50) in main position (HDIA) within 14 days prior to the index date in SwedeHF. 
-
-Out-patients are defined as patients without a date of discharge for a hospitalization for any cause within 14 days prior to the index date in SwedeHF. They should also be registered as Out-patients in SwedeHF. 
 
 # Statistical analysis 
 

@@ -2,7 +2,7 @@
 
 # Inclusion/exclusion criteria --------------------------------------------------------
 
-rsdata <- rsdata323 %>%
+rsdata <- rsdata324 %>%
   filter(casecontrol == "Case")
 
 flow <- c("Number of posts (cases) in SHFDB3", nrow(rsdata))
@@ -27,20 +27,17 @@ rsdata <- rsdata %>%
 flow <- rbind(flow, c("Duration of HF > 6 months (as registred in SwedeHF)", nrow(rsdata)))
 
 rsdata <- rsdata %>%
-  filter(is.na(sos_prevhosphf) | sos_prevhosphf <= 14)
-flow <- rbind(flow, c("No prior HF hospitalization (allowing for HF hospitalization within 14 days from index)", nrow(rsdata)))
+  filter(sos_location != "Other in-patient") %>%
+  mutate(sos_location = droplevels(sos_location))
+flow <- rbind(flow, c("Not hospitalized for anything other than HF", nrow(rsdata)))
 
 rsdata <- rsdata %>%
-  filter(sos_location != "Exclude")
-flow <- rbind(flow, c("No prior hospitalization within 14 days or registred as In-patients in SwedeHF (only controls)", nrow(rsdata)))
+  filter(is.na(sos_prevhosphf) | (sos_prevhosphf <= 14 & sos_location == "HF in-patient"))
+flow <- rbind(flow, c("No prior HF hospitalization (allowing for HF hospitalization within 14 days prior to index for cases)", nrow(rsdata)))
 
 rsdata <- rsdata %>%
   filter(sos_outtime_death >= 365 / 2)
 flow <- rbind(flow, c(">= 6 months follow-up (not dead/emigrated/end follow-up during this time)", nrow(rsdata)))
-
-rsdata <- rsdata %>%
-  filter(sos_location == "Out-patient" & sos_outtime_hosphf >= 365 / 2 | sos_location == "HF in-patient")
-flow <- rbind(flow, c("Free from HF hospitalization within 6 months after index (only controls)", nrow(rsdata)))
 
 rsdata <- rsdata %>%
   group_by(LopNr) %>%

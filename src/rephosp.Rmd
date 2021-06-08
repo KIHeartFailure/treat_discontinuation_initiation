@@ -148,6 +148,6 @@ reptreatbar(
     ddr_bbl_prior == "Yes",
     sos_location == "HF in-patient"
   ),
-  "bbl", ymax = 20
+  "bbl", ymax = 25
 )
 ```
