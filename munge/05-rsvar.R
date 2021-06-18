@@ -124,21 +124,21 @@ rsdata <- rsdata %>%
 
     # limit to 3 yrs
     sos_out_hospany3y = if_else(sos_outtime_hospany >= 365 * 3, "No", as.character(sos_out_hospany)),
-    sos_outtime_hospany3y = if_else(sos_outtime_hospany >= 365 * 3, 365, sos_outtime_hospany),
+    sos_outtime_hospany3y = if_else(sos_outtime_hospany >= 365 * 3, 365 * 3, sos_outtime_hospany),
 
     sos_out_hospcv3y = if_else(sos_outtime_hospcv >= 365 * 3, "No", as.character(sos_out_hospcv)),
-    sos_outtime_hospcv3y = if_else(sos_outtime_hospcv >= 365 * 3, 365, sos_outtime_hospcv),
+    sos_outtime_hospcv3y = if_else(sos_outtime_hospcv >= 365 * 3, 365 * 3, sos_outtime_hospcv),
 
     sos_out_hospnoncv3y = if_else(sos_outtime_hospnoncv >= 365 * 3, "No", as.character(sos_out_hospnoncv)),
-    sos_outtime_hospnoncv3y = if_else(sos_outtime_hospnoncv >= 365 * 3, 365, sos_outtime_hospnoncv),
+    sos_outtime_hospnoncv3y = if_else(sos_outtime_hospnoncv >= 365 * 3, 365 * 3, sos_outtime_hospnoncv),
 
     sos_out_hosphf3y = if_else(sos_outtime_hosphf >= 365 * 3, "No", as.character(sos_out_hosphf)),
-    sos_outtime_hosphf3y = if_else(sos_outtime_hosphf >= 365 * 3, 365, sos_outtime_hosphf),
+    sos_outtime_hosphf3y = if_else(sos_outtime_hosphf >= 365 * 3, 365 * 3, sos_outtime_hosphf),
 
     sos_out_deathcv3y = if_else(sos_outtime_death >= 365 * 3, "No", as.character(sos_out_deathcv)),
     sos_out_deathnoncv3y = if_else(sos_outtime_death >= 365 * 3, "No", as.character(sos_out_deathnoncv)),
     sos_out_death3y = if_else(sos_outtime_death >= 365 * 3, "No", as.character(sos_out_death)),
-    sos_outtime_death3y = if_else(sos_outtime_death >= 365 * 3, 365, sos_outtime_death),
+    sos_outtime_death3y = if_else(sos_outtime_death >= 365 * 3, 365 * 3, sos_outtime_death),
 
     # combined
     sos_out_deathhosphf3y = case_when(
