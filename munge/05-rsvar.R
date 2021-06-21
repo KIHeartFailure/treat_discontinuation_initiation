@@ -42,10 +42,10 @@ rsdata <- rsdata %>%
     levels = 1:2
     ),
 
-    shf_map_cat = case_when(
-      shf_map <= 90 ~ "<=90",
-      shf_map > 90 ~ ">90"
-    ),
+    shf_map_cat = factor(case_when(
+      shf_map <= 90 ~ 2,
+      shf_map > 90 ~ 1 
+    ), levels = 1:2, labels = c(">90", "<=90")),
 
     shf_potassium_cat = factor(
       case_when(
