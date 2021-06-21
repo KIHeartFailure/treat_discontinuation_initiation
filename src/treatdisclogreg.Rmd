@@ -75,6 +75,9 @@ rloop8m <- funclogreg(
 refall <- bind_rows(rmra, rmra8m, rrasi, rrasi8m, rbbl, rbbl8m, rloop, rloop8m)
 
 # HFmrEF
+mrmra <- funclogreg(efcat = "HFmrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
+mrmra8m <- funclogreg(efcat = "HFmrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo")
+
 mrrasi <- funclogreg(efcat = "HFmrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
 mrrasi8m <- funclogreg(efcat = "HFmrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo")
 
@@ -90,7 +93,7 @@ mrloop8m <- funclogreg(
   valmedpre = "No", valmedpost = "Yes", name = "No Loop diuretics 2 dd/8 mo"
 )
 
-mrefall <- bind_rows(mrrasi, mrrasi8m, mrbbl, mrbbl8m, mrloop, mrloop8m)
+mrefall <- bind_rows(mrmra, mrmra8m, mrrasi, mrrasi8m, mrbbl, mrbbl8m, mrloop, mrloop8m)
 
 # HFpEF
 pmra <- funclogreg(efcat = "HFpEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
@@ -131,8 +134,9 @@ default_kable(ovall,
 
 ```{r treatdisclogregefcomb, cache=cacheon, dependson="treatdisclogreg"}
 
-mra <- funclogreg(efcat = c("HFpEF", "HFrEF"), medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA (HFpEF & HFrEF)")
-mra8m <- funclogreg(efcat = c("HFpEF", "HFrEF"), medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo (HFpEF & HFrEF)")
+mra <- funclogreg(efcat = c("HFpEF", "HFmrEF", "HFrEF"), medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA (HFpEF, HFmrEF & HFrEF)")
+mra8m <- funclogreg(efcat = c("HFpEF", "HFmrEF", "HFrEF"), medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", 
+                    name = "MRA 2 dd/8 mo (HFpEF, HFmrEF & HFrEF)")
 
 rasi <- funclogreg(efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi (HFmrEF & HFrEF)")
 rasi8m <- funclogreg(efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo (HFmrEF & HFrEF)")

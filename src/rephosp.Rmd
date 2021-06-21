@@ -118,10 +118,10 @@ reptreatbar <- function(data, treat, ymax = 100) {
 ```
 
 
-```{r rephospmra, fig.cap = "Repeated HF hospitalizations vs discontinuation of MRA (HFrEF & HFpEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
+```{r rephospmra, fig.cap = "Repeated HF hospitalizations vs discontinuation of MRA (HFrEF, HFmrEF & HFpEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
 reptreatbar(
   data = rsdata %>% filter(
-    shf_ef_cat %in% c("HFrEF", "HFpEF"),
+    shf_ef_cat %in% c("HFrEF", "HFmrEF", "HFpEF"),
     ddr_mra_prior == "Yes",
     sos_location == "HF in-patient"
   ),

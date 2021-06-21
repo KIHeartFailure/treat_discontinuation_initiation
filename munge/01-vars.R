@@ -6,6 +6,7 @@ tabvars <- c(
   # demo
   "shf_sex",
   "shf_age",
+  "shf_age_cat",
   "shf_indexyear",
 
   # clinical factors and lab measurments
@@ -13,13 +14,16 @@ tabvars <- c(
   "shf_nyha_cat",
 
   "shf_map",
+  "shf_map_cat",
   "shf_bpsys",
   "shf_bpdia",
   "shf_heartrate",
+  "shf_heartrate_cat",
   "shf_bmi",
   "shf_bmi_cat",
   "shf_hb",
   "shf_potassium",
+  "shf_potassium_cat",
   "shf_gfrckdepi",
   "shf_gfrckdepi_cat",
   "shf_ntprobnp",
@@ -67,7 +71,7 @@ tabvars <- c(
 impvars <- c(
   # demo
   "shf_sex",
-  "shf_age",
+  "shf_age_cat",
   "shf_indexyear",
 
   # clinical factors and lab measurments
@@ -75,10 +79,10 @@ impvars <- c(
   "shf_durationhf",
   "shf_nyha_cat",
 
-  "shf_map",
-  "shf_heartrate",
+  "shf_map_cat",
+  "shf_heartrate_cat",
   "shf_bmi_cat",
-  "shf_potassium",
+  "shf_potassium_cat",
   "shf_gfrckdepi_cat",
   "shf_ntprobnp_cat",
 
@@ -122,8 +126,13 @@ impvars <- c(
 
 modvars <- c(
   "shf_sex",
-  "shf_age",
+  "shf_age_cat",
   "shf_nyha_cat",
+  "shf_map_cat",
+  "shf_heartrate_cat",
+  "shf_bmi_cat",
+  "shf_gfrckdepi_cat",
+  "shf_ntprobnp_cat",
   "shf_sos_com_ihd",
   "shf_smoking_cat",
   "shf_sos_com_af",

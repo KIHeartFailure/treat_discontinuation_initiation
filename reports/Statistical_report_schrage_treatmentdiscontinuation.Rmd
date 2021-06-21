@@ -80,10 +80,6 @@ within 8 months to 1 day prior to index date.
 
 Post medication is defined as 1 dispensed prescription from index date until 6 months after index date. 
 
-```{r npr}
-default_kable(metaout, caption = "Additional outcomes from NPR")
-```
-
 # Statistical analysis 
 
 ## General
@@ -91,6 +87,10 @@ default_kable(metaout, caption = "Additional outcomes from NPR")
 All analyses were performed using `r sessionInfo()$R.version$version.string` [@r]. 
 The level of significance is set to 5%, two-sided. No adjustment for multiple 
 comparisons were made and therefore the results should be viewed with some care.
+
+## EF combined
+
+In the analyses of EF combined the EF used for MRA and loopdiuretics is r, mr, pEF and for rasi and bbl r, mrEF. 
 
 ## Baseline characteristics
 
@@ -106,7 +106,7 @@ Table \ref{tab:tab1mra}.
 
 ## Treatment discontinuation/initiation 
 
-A logistic regression is performed separately for the 3 EF groups for patients 
+A logistic regression is performed separately for the 3 EF groups and EF combined for patients 
 with the respective medications prior to the hospitalization/visit, with discontinuation 
 (for MRA, RASi, Bbl)/initiation (Loopdiuretics) as the outcome. 
 Adjustment is performed for variables indicated in \ref{tab:tab1all}.  
@@ -138,7 +138,7 @@ follow-up and without the treatment prior to index.
 
 ## Predictors of discontinuation/initiation 
 
-A logistic regression is performed separately for the 3 EF groups for patients 
+A logistic regression is performed separately for the 3 EF groups and EF combined for patients 
 with the respective medications prior to the hospitalization, with discontinuation/initiation as the outcome. 
 Only patients hospitalized for HF are included (so the controls are dropped from this analysis). 
 
@@ -161,7 +161,8 @@ used to model the time to first event analysis and negative
 binomial regression including the log of time as an offset in the model for 
 the repeated events. The models were partly crude and partly adjusted for variables 
 indicated in Table \ref{tab:tab1all} and are performed separately in the respective EF 
-groups and on those with the respective prior treatments. 
+groups and EF combined and on those with the respective prior treatments. 
+Only patients hospitalized for HF are included (so the controls are dropped from this analysis). 
 
 The median (min-max) follow-up among the cases is `r rsdata %>% 
 filter(sos_location == "HF in-patient") %>%
