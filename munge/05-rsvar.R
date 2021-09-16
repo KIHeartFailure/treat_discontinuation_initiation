@@ -44,7 +44,7 @@ rsdata <- rsdata %>%
 
     shf_map_cat = factor(case_when(
       shf_map <= 90 ~ 2,
-      shf_map > 90 ~ 1 
+      shf_map > 90 ~ 1
     ), levels = 1:2, labels = c(">90", "<=90")),
 
     shf_potassium_cat = factor(
@@ -80,11 +80,12 @@ rsdata <- rsdata %>%
 
     shf_gfrckdepi_cat = factor(case_when(
       is.na(shf_gfrckdepi) ~ NA_real_,
-      shf_gfrckdepi >= 60 ~ 1,
+      shf_gfrckdepi < 30 ~ 3,
       shf_gfrckdepi < 60 ~ 2,
+      shf_gfrckdepi >= 60 ~ 1,
     ),
-    labels = c(">=60", "<60"),
-    levels = 1:2
+    labels = c(">=60", "30-59", "<30"),
+    levels = 1:3
     ),
 
     shf_sos_com_af = case_when(
@@ -150,7 +151,7 @@ rsdata <- rsdata %>%
       sos_out_deathcv3y == "Yes" |
         sos_out_hosphf3y == "Yes" ~ "Yes",
       TRUE ~ "No"
-    ),
+    )
   )
 
 
