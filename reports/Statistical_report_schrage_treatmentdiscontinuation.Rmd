@@ -104,6 +104,16 @@ Missing data was imputed with multiple imputation (n = 10) using mice [@mice].
 Variables included in the model are indicated in 
 Table \ref{tab:tab1mra}. 
 
+## Treatments overall
+
+Only patients hospitalized for HF are included (so the controls are dropped from this analysis). 
+However, all patients are presented for the respective treatments, 
+not only those that were on the respective treatment at the time of HFH as in the following analyses. 
+
+```{r, child = "../src/tabontreatall.Rmd"}
+
+```
+
 ## Treatment discontinuation/initiation 
 
 A logistic regression is performed separately for the 3 EF groups and EF combined for patients 

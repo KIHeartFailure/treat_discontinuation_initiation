@@ -1,8 +1,42 @@
 ```{r treatdisccoxreg, cache=cacheon}
 
-funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Yes", valmedrefpost = "Yes", name) {
+funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Yes", valmedrefpost = "Yes", name, nameef = FALSE) {
+  out <- data.frame(matrix(NA, ncol = 4, nrow = 3))
+  colnames(out) <- c("priormed", "model", levels(rsdata %>% pull(!!sym(medpost))))
+
+  outforest <- data.frame(matrix(NA, ncol = 8, nrow = 1))
+  colnames(outforest) <- c("priormed", "ef", "desk", "loghr", "lci", "uci", "hrci", "pval")
+
+  if (valmedpre == "Yes") {
+    nametmp <- name
+  }
+  if (valmedpre == "No") {
+    nametmp <- paste0("No ", name)
+  }
+  if (nameef) {
+    out[1:3, 1] <- paste0(rep(nametmp, 3), " (", paste0(efcat, collapse = ", "), ")")
+  }
+  if (!nameef) {
+    out[1:3, 1] <- rep(nametmp, 3)
+  }
+
+
+  if (valmedpre == "Yes") {
+    outforest[1, 1] <- paste0(name, " discontinuation")
+  }
+  if (valmedpre == "No") {
+    outforest[1, 1] <- paste0(name, " initiation")
+  }
+
+  if (nameef) {
+    outforest[1, 2] <- paste0("All", " (", paste0(efcat, collapse = ", "), ")")
+  }
+  if (!nameef) {
+    outforest[1, 2] <- efcat
+  }
 
   # incidence
+  out[1, 2] <- "No event, sum py, incidence per 1000 py"
   if (!rep) {
     ev <- rsdata %>%
       filter(sos_location == "HF in-patient" & shf_ef_cat %in% efcat & !!sym(medpre) == valmedpre) %>%
@@ -39,9 +73,24 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
     fn(r$upper, dig = 0), ")"
   )
 
+  out[1, 3:4] <- inc
+
+  incforest <- paste0(
+    fn(r$rate, dig = 0), " (",
+    fn(r$lower, dig = 0), "-",
+    fn(r$upper, dig = 0), ")"
+  )
+
+  if (valmedpre == "Yes") {
+    outforest[1, 3] <- paste0(incforest[1], " vs. ", incforest[2])
+  }
+  if (valmedpre == "No") {
+    outforest[1, 3] <- paste0(incforest[2], " vs. ", incforest[1])
+  }
+
   if (!rep) {
     # crude cox reg
-
+    out[2, 2] <- "Crude HR (95% CI), p"
     mod <- coxph(formula(paste0("Surv(", time, ", ", event, " == 'Yes') ~ relevel(", medpost, ", ref = '", valmedrefpost, "')")),
       data = rsdata %>% filter(sos_location == "HF in-patient" & shf_ef_cat %in% efcat & !!sym(medpre) == valmedpre)
     )
@@ -55,7 +104,7 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
     )
 
     # adj cox reg
-
+    out[3, 2] <- "Adjusted HR (95% CI), p"
     amod <- hf_coxph_mids(formula(paste0(
       "Surv(", time, ",", event, " == 'Yes') ~ relevel(",
       medpost, ", ref = '", valmedrefpost, "') + ", paste(modvars, collapse = " + ")
@@ -74,7 +123,9 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
   }
 
   if (rep) {
+
     # neg binomial regression
+    out[2, 2] <- "Crude IRR (95% CI), p"
     ## crude
     mod <- glm.nb(formula(paste0(event, " ~ relevel(", medpost, ", ref = '", valmedrefpost, "') + offset(log(", time, "))")),
       data = rsdata %>% filter(sos_location == "HF in-patient" & shf_ef_cat %in% efcat & !!sym(medpre) == valmedpre)
@@ -89,6 +140,7 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
     )
 
     ## adjusted
+    out[3, 2] <- "Adjusted IRR (95% CI), p"
     amod <- hf_glm.nb_mids(formula(paste0(
       event, " ~ relevel(", medpost, ", ref = '", valmedrefpost, "') + offset(log(", time, ")) +",
       paste(modvars, collapse = " + ")
@@ -107,20 +159,35 @@ funccoxreg <- function(time, event, rep, efcat, medpre, medpost, valmedpre = "Ye
     )
   }
 
-  if (medpost != "ddr_loopdiuretic_post") {
-    out <- rbind(inc, c(hrcrude, "ref"), c(hradj, "ref"))
-  } else {
-    out <- rbind(inc, c("ref", hrcrude), c("ref", hradj))
+  if (valmedpre == "Yes") {
+    out[2, 3:4] <- c(hrcrude, "ref")
+    out[3, 3:4] <- c(hradj, "ref")
+  }
+  if (valmedpre == "No") {
+    out[2, 3:4] <- c("ref", hrcrude)
+    out[3, 3:4] <- c("ref", hradj)
   }
 
-  if (rep) out <- data.frame(rep(name, 3), c("No event, sum py, incidence per 1000 py", "Crude IRR (95% CI), p", "Adjusted IRR (95% CI), p"), out)
-  if (!rep) out <- data.frame(rep(name, 3), c("No event, sum py, incidence per 1000 py", "Crude HR (95% CI), p", "Adjusted HR (95% CI), p"), out)
-
   colnames(out) <- c("priormed", "mod", "No", "Yes")
-  return(out)
+
+  # for forestplot
+
+  if (!rep) {
+    outforest[1, 4] <- asmod$estimate[1]
+    outforest[1, 5] <- asmod$estimate[1] - global_z05 * asmod$std.error[1]
+    outforest[1, 6] <- asmod$estimate[1] + global_z05 * asmod$std.error[1]
+    outforest[1, 7] <- paste0(
+      fn(exp(asmod$estimate[1]), dig = 1),
+      " (", fn(exp(asmod$estimate[1] - global_z05 * asmod$std.error[1]), dig = 1),
+      "-", fn(exp(asmod$estimate[1] + global_z05 * asmod$std.error[1]), dig = 1), ")"
+    )
+    outforest[1, 8] <- fn(asmod$p.value[1], dig = 3, p = TRUE)
+  }
+  outboth <- list(out = out, outforest = outforest)
+  return(outboth)
 }
 
-funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname) {
+funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname, nameef = FALSE) {
   # HFrEF
   rmra <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
   rmra8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo")
@@ -128,21 +195,24 @@ funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname) {
   rrasi <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
   rrasi8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo")
 
-  rbbl <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl")
-  rbbl8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd/8 mo")
+  rbbl <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Betablocker")
+  rbbl8m <- funccoxreg(
+    time = time2, event = event2, rep = rep2, efcat = "HFrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post",
+    name = "Betablocker 2 dd/8 mo"
+  )
 
   rloop <- funccoxreg(
     time = time2, event = event2, rep = rep2,
     efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics"
+    valmedpre = "No", valmedrefpost = "No", name = "Loop diuretic"
   )
   rloop8m <- funccoxreg(
     time = time2, event = event2, rep = rep2,
     efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics 2 dd/8 mo"
+    valmedpre = "No", valmedrefpost = "No", name = "Loop diuretic 2 dd/8 mo"
   )
 
-  refall <- bind_rows(rmra, rmra8m, rrasi, rrasi8m, rbbl, rbbl8m, rloop, rloop8m)
+  refall <- bind_rows(rmra$out, rmra8m$out, rrasi$out, rrasi8m$out, rbbl$out, rbbl8m$out, rloop$out, rloop8m$out)
 
   # HFmrEF
   mrmra <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
@@ -151,21 +221,24 @@ funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname) {
   mrrasi <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
   mrrasi8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo")
 
-  mrbbl <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl")
-  mrbbl8m <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd/8 mo")
+  mrbbl <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Betablocker")
+  mrbbl8m <- funccoxreg(
+    time = time2, event = event2, rep = rep2, efcat = "HFmrEF", medpre = "ddr_bbl_prior8m",
+    medpost = "ddr_bbl_post", name = "Betablocker 2 dd/8 mo"
+  )
 
   mrloop <- funccoxreg(
     time = time2, event = event2, rep = rep2,
     efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics"
+    valmedpre = "No", valmedrefpost = "No", name = "Loop diuretic"
   )
   mrloop8m <- funccoxreg(
     time = time2, event = event2, rep = rep2,
     efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics 2 dd/8 mo"
+    valmedpre = "No", valmedrefpost = "No", name = "Loop diuretic 2 dd/8 mo"
   )
 
-  mrefall <- bind_rows(mrmra, mrmra8m, mrrasi, mrrasi8m, mrbbl, mrbbl8m, mrloop, mrloop8m)
+  mrefall <- bind_rows(mrmra$out, mrmra8m$out, mrrasi$out, mrrasi8m$out, mrbbl$out, mrbbl8m$out, mrloop$out, mrloop8m$out)
 
   # HFpEF
   pmra <- funccoxreg(time = time2, event = event2, rep = rep2, efcat = "HFpEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
@@ -174,56 +247,56 @@ funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname) {
   ploop <- funccoxreg(
     time = time2, event = event2, rep = rep2,
     efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics"
+    valmedpre = "No", valmedrefpost = "No", name = "Loop diuretic"
   )
   ploop8m <- funccoxreg(
     time = time2, event = event2, rep = rep2,
     efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics 2 dd/8 mo"
+    valmedpre = "No", valmedrefpost = "No", name = "Loop diuretic 2 dd/8 mo"
   )
 
-  pefall <- bind_rows(pmra, pmra8m, ploop, ploop8m)
+  pefall <- bind_rows(pmra$out, pmra8m$out, ploop$out, ploop8m$out)
 
   # HF all
   mra <- funccoxreg(
     time = time2, event = event2, rep = rep2, efcat = c("HFrEF", "HFmrEF", "HFpEF"),
-    medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA"
+    medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA", nameef = TRUE
   )
   mra8m <- funccoxreg(
     time = time2, event = event2, rep = rep2, efcat = c("HFrEF", "HFmrEF", "HFpEF"),
-    medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo"
+    medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo", nameef = TRUE
   )
 
   rasi <- funccoxreg(
     time = time2, event = event2, rep = rep2, efcat = c("HFrEF", "HFmrEF"),
-    medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi"
+    medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi", nameef = TRUE
   )
   rasi8m <- funccoxreg(
     time = time2, event = event2, rep = rep2, efcat = c("HFrEF", "HFmrEF"),
-    medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo"
+    medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo", nameef = TRUE
   )
 
   bbl <- funccoxreg(
     time = time2, event = event2, rep = rep2, efcat = c("HFrEF", "HFmrEF"),
-    medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl"
+    medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Betablocker", nameef = TRUE
   )
   bbl8m <- funccoxreg(
     time = time2, event = event2, rep = rep2, efcat = c("HFrEF", "HFmrEF"),
-    medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Bbl 2 dd/8 mo"
+    medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Betablocker 2 dd/8 mo", nameef = TRUE
   )
 
   loop <- funccoxreg(
     time = time2, event = event2, rep = rep2,
     efcat = c("HFrEF", "HFmrEF", "HFpEF"), medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics"
+    valmedpre = "No", valmedrefpost = "No", name = "Loop diuretic", nameef = TRUE
   )
   loop8m <- funccoxreg(
     time = time2, event = event2, rep = rep2,
     efcat = c("HFrEF", "HFmrEF", "HFpEF"), medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-    valmedpre = "No", valmedrefpost = "No", name = "No Loop diuretics 2 dd/8 mo"
+    valmedpre = "No", valmedrefpost = "No", name = "Loop diuretic 2 dd/8 mo", nameef = TRUE
   )
 
-  efall <- bind_rows(mra, mra8m, rasi, rasi8m, bbl, bbl8m, loop, loop8m)
+  efall <- bind_rows(mra$out, mra8m$out, rasi$out, rasi8m$out, bbl$out, bbl8m$out, loop$out, loop8m$out)
 
   ovall <- Reduce(
     function(...) {
@@ -242,7 +315,147 @@ funccoxreg2 <- function(time2, event2, rep2 = FALSE, eventname) {
   colnames(ovall) <- sanitize_text(c("Prior medication", "Model", rep(c("No treatment", "Treatment"), 3)))
   colnames(efall) <- sanitize_text(c("Prior medication", "Model", "No treatment", "Treatment"))
 
-  return(out <- list(eventname = eventname, efsep = ovall, efall = efall))
+
+  forest <- rbind(
+    c("MRA discontinuation", rep(NA, 7)),
+    rmra$outforest,
+    mrmra$outforest,
+    pmra$outforest,
+    mra$outforest,
+    c("RASi discontinuation", rep(NA, 7)),
+    rrasi$outforest,
+    mrrasi$outforest,
+    rasi$outforest,
+    c("Betablocker discontinuation", rep(NA, 7)),
+    rbbl$outforest,
+    mrbbl$outforest,
+    bbl$outforest,
+    c("Loop diuretic initiation", rep(NA, 7)),
+    rloop$outforest,
+    mrloop$outforest,
+    ploop$outforest,
+    loop$outforest
+  )
+
+  return(out <- list(eventname = eventname, efsep = ovall, efall = efall, forest = forest))
+}
+```
+
+```{r treatdisccoxregforest, cache=cacheon, dependson=c("treatdisclogreg", "treatdisclogregef", "treatdisclogregefcomb"), fig.width=10, fig.height=7}
+
+forestfunc <- function(forest) {
+  forest <- forest %>%
+    mutate(
+      priormed = if_else(is.na(ef), priormed, NA_character_),
+      order = n():1,
+      cols = case_when(
+        is.na(ef) ~ "black",
+        ef == "HFrEF" ~ global_kicols[2],
+        ef == "HFmrEF" ~ global_kicols[3],
+        ef == "HFpEF" ~ global_kicols[4],
+        TRUE ~ global_kicols[1]
+      )
+    )
+
+  cextext <- 1.1
+
+  # exp(min(as.numeric(forest$lci), na.rm = T))
+  # exp(max(as.numeric(forest$uci), na.rm = T))
+  minmy <- .5
+  maxmy <- 3.5
+
+  # c(bottom, left, top, right)
+  par(mar = c(3, 27.5, 0, 9.5) + 0.2)
+
+  plot(forest$loghr, forest$order,
+    cex = 2,
+    xlim = c(
+      log(minmy),
+      log(maxmy)
+    ),
+    xlab = "",
+    cex.lab = cextext,
+    ylim = c(1, max(forest$order) + .4),
+    axes = FALSE,
+    ylab = NA,
+    main = NA,
+    type = "p",
+    pch = 22,
+    bg = forest$cols,
+    col = forest$cols,
+    xaxs = "i"
+  )
+
+  for (i in 1:nrow(forest)) {
+    if (!is.na(forest$lci[i])) {
+      matplot(c(forest$lci[i], forest$uci[i]), c(forest$order[i], forest$order[i]),
+        type = "l", add = TRUE, col = forest$cols[i], cex = 1, lwd = 2
+      )
+      # if (forest$lci[i] < log(minmy)) {
+      #   arrows(0.01, i, 0, i, col = forest$cols[i], code = 2, length = 0.15)
+      # }
+      #  if (forest$uci[i] > log(maxmy)) {
+      #   arrows(0.01, i, 0, i, col = forest$cols[i], code = 2, length = 0.15)
+      # }
+    }
+  }
+
+  matplot(c(log(1), log(1)), c(-1, max(forest$order)), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
+
+  axismy <- c(0.5, 0.75, 1, 1.5, 2, 2.5, 3.5)
+  axis(1,
+    cex.axis = cextext, at = log(axismy),
+    labels = axismy, gap.axis = -100000
+  )
+
+  axis(2,
+    at = forest %>% filter(is.na(ef)) %>% pull(order),
+    labels = forest %>% filter(is.na(ef)) %>% pull(priormed),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 14.5, hadj = 1, font = 2
+  )
+  axis(2,
+    at = forest %>% filter(!is.na(ef)) %>% pull(order),
+    labels = forest %>% filter(!is.na(ef)) %>% pull(ef),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 14.5, hadj = 1
+  )
+
+  axis(2,
+    at = max(forest$order) + 1,
+    labels = "Incidence rate",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = forest %>% filter(!is.na(ef)) %>% pull(order),
+    labels = forest %>% filter(!is.na(ef)) %>% pull(desk),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5
+  )
+
+  axis(2,
+    at = max(forest$order) + 1,
+    labels = "HR (95% CI)",
+    cex.axis = cextext, tick = FALSE, las = 2, line = -17, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = forest %>% filter(!is.na(ef)) %>% pull(order),
+    labels = forest %>% filter(!is.na(ef)) %>% pull(hrci),
+    cex.axis = cextext, tick = FALSE, las = 2, line = -17, hadj = 0.5
+  )
+
+  axis(2,
+    at = max(forest$order) + 1,
+    labels = "P-value",
+    cex.axis = cextext, tick = FALSE, las = 2, line = -21.5, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = forest %>% filter(!is.na(ef)) %>% pull(order),
+    labels = forest %>% filter(!is.na(ef)) %>% pull(pval),
+    cex.axis = cextext, tick = FALSE, las = 2, line = -21.5, hadj = 0.5
+  )
+
+  axis(1,
+    at = (log(maxmy) - abs(log(minmy))) / 2, cex.axis = cextext,
+    labels = "HR (95% CI)", line = 1, tick = FALSE
+  )
 }
 ```
 
@@ -264,6 +477,11 @@ default_kable(out$efall,
   landscape()
 ```
 
+```{r treatdisccoxregdeathforest, fig.cap = "Treatment discontinuation (MRA, RASi, Bbl)/initiation (Loopdiuretic) - All-cause mortality", cache=cacheon, dependson=c("treatdisccoxreg", "treatdisccoxregforest", "treatdisccoxregdeath"), fig.width=10, fig.height=7}
+
+forestfunc(out$forest)
+```
+
 ```{r treatdisccoxregdeathcv, cache=cacheon, dependson="treatdisccoxreg"}
 
 out <- funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_deathcv3y", eventname = "CV mortality within 3 years")
@@ -280,6 +498,12 @@ default_kable(out$efall,
   escape = TRUE
 ) %>%
   landscape()
+```
+
+```{r treatdisccoxregdeathcvforest, , fig.cap = "Treatment discontinuation (MRA, RASi, Bbl)/initiation (Loopdiuretic) - CV mortality", cache=cacheon, dependson=c("treatdisccoxreg", "treatdisccoxregforest", "treatdisccoxregdeathcv"), fig.width=10, fig.height=7}
+
+forestfunc(out$forest)
+
 ```
 
 ```{r treatdisccoxreghosphf, cache=cacheon, dependson="treatdisccoxreg"}

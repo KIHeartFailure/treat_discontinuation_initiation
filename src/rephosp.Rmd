@@ -59,7 +59,7 @@ bardatafunc <- function(data2, treat2, time, minfollowup, timevalue) {
     filter(!!sym(treatvar) == "No") %>%
     mutate(time = timevalue) %>%
     rename(sos_out_nohosphfall = !!sym(hfhospvar)) %>%
-    select(sos_out_nohosphfall, time, ntot, freq)
+    select(sos_out_nohosphfall, time, ntot, n, freq)
 }
 
 reptreatbar <- function(data, treat, ymax = 100) {
@@ -96,24 +96,35 @@ reptreatbar <- function(data, treat, ymax = 100) {
   )
 
   bardataall <- bind_rows(bardata6m, bardata1y, bardata2y, bardata3y) %>%
-    mutate(time = factor(time, levels = c(0:3), labels = c("6 mo", "1 yr", "2 yrs", "3 yrs")))
+    mutate(time = factor(time, levels = c(0:3), labels = c("6 months", "1 year", "2 years", "3 years")))
 
-  ggplot(
-    bardataall,
-    aes(x = time, y = freq, fill = sos_out_nohosphfall)
-  ) +
-    geom_bar(stat = "identity", position = position_dodge()) +
-    ylim(0, ymax) +
-    scale_fill_manual("Number of HF hospitalizations",
-      values = global_kicols
-    ) +
-    theme_minimal() +
-    ylab("Percent discontinued") +
-    xlab("Time after first HF hospitalization") +
-    geom_text(aes(label = ntot),
-      vjust = -1, color = "black",
-      position = position_dodge(.9), size = 3
-    )
+  cexmy <- 1.2
+
+  # c(bottom, left, top, right)
+  par(mar = c(4, 8, 2, 0) + 0.1)
+
+  b <- barplot(freq ~ sos_out_nohosphfall + time,
+    data = bardataall, beside = T, axes = F,
+    ylab = "Percent discontinued",
+    xlab = NA,
+    ylim = c(0, ymax),
+    col = global_kicols[1:4],
+    cex.lab = cexmy,
+    names.arg = rep(NA, 4)
+  )
+
+  text(
+    x = b, y = bardataall$freq + ymax / 40, label = paste0(bardataall$n, "/", bardataall$ntot),
+    cex = cexmy, col = "black", xpd = TRUE, srt = 90, adj = 0
+  )
+
+  axis(2, las = 2, cex.axis = cexmy)
+
+  mtext("No. HFH", side = 1, line = 1, at = -5.5, adj = 0, cex = cexmy)
+  mtext("Time after 1st HFH", side = 1, line = 3, at = -5.5, adj = 0, cex = cexmy)
+
+  axis(1, at = b, rep(c("1", "2-3", "4-6", "7+"), 4), cex.axis = cexmy, line = 0, tick = FALSE, gap.axis = -10000000, las = 2)
+  axis(1, at = (b[2, ] + b[3, ]) / 2, c("6 months", "1 year", "2 years", "3 years"), cex.axis = cexmy, line = 2, tick = FALSE, gap.axis = -10000000)
 }
 ```
 
@@ -125,7 +136,7 @@ reptreatbar(
     ddr_mra_prior == "Yes",
     sos_location == "HF in-patient"
   ),
-  treat = "mra", ymax = 50
+  treat = "mra", ymax = 55
 )
 ```
 
