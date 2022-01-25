@@ -1,0 +1,114 @@
+```{r bardesctreat, cache=cacheon}
+
+funcdesk <- function(medpre, medpost, name, nameno, ef) {
+  med <- rsdata %>%
+    filter(sos_location == "HF in-patient", shf_ef_cat %in% ef) %>%
+    # group_by(shf_ef_cat, .drop = F) %>%
+    count(!!sym(medpost), !!sym(medpre)) %>%
+    mutate(
+      percent = n / sum(n) * 100,
+      per = paste0(fn(percent, 1), "%"),
+      nper = paste0(n, " (", per, ")")
+    ) %>%
+    ungroup() %>%
+    mutate(
+      treatstatus = factor(case_when(
+        !!sym(medpre) == "No" & !!sym(medpost) == "No" ~ 1,
+        !!sym(medpre) == "Yes" & !!sym(medpost) == "No" ~ 2,
+        !!sym(medpre) == "No" & !!sym(medpost) == "Yes" ~ 3,
+        !!sym(medpre) == "Yes" & !!sym(medpost) == "Yes" ~ 4
+      ), levels = 1:4, labels = c("Stable off", "Discontinued", "Initiated", "Stable on")),
+      treat = name,
+      treatno = nameno
+    ) %>%
+    select(n, percent, per, nper, treat, treatno, treatstatus)
+}
+
+funcdesk2 <- function(ef2) {
+  mra <- funcdesk(medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA", nameno = 1, ef = ef2)
+  rasi <- funcdesk(medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi/ARNi", nameno = 2, ef = ef2)
+  arni <- funcdesk(medpre = "ddr_arni_prior", medpost = "ddr_arni_post", name = "ARNi", nameno = 3, ef = ef2)
+  bbl <- funcdesk(medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl", nameno = 4, ef = ef2)
+  loop <- funcdesk(medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post", name = "Loop diuretics", nameno = 5, ef = ef2)
+
+  all <- bind_rows(mra, rasi, arni, bbl, loop)
+
+  return(all)
+}
+
+funcdeskbar <- function(data) {
+  cexmy <- 1.2
+
+  # c(bottom, left, top, right)
+  par(mar = c(3, 4, 0.5, 0) + 0.1)
+
+  b <- barplot(percent ~ treatstatus + treatno,
+    data = data, beside = F, axes = F,
+    ylab = "Percent",
+    xlab = NA,
+    ylim = c(0, 100),
+    xlim = c(0.2, 7.5),
+    col = global_kicols[1:4],
+    border = "white",
+    cex.lab = cexmy,
+    cex.names = cexmy,
+    names.arg = unique(data$treat)
+  )
+
+  axis(2, las = 2, cex.axis = cexmy)
+
+  legend("topright", levels(data$treatstatus),
+    fill = global_kicols[1:4],
+    col = global_kicols[1:4], border = global_kicols[1:4], bty = "n",
+    cex = cexmy
+  )
+}
+```
+
+```{r descref, cache=cacheon, dependson="bardesctreat"}
+ref <- funcdesk2(ef2 = "HFrEF")
+
+default_kable(ref %>% select(treat, treatstatus, nper),
+  col.names = c("Treatment", "Status", "n (%)"),
+  caption = "Treatment status after first HFH - HFrEF",
+  escape = TRUE,
+  scale = F
+)
+```
+
+```{r descrefbar, fig.cap = "Treatment status after first HFH - HFrEF", cache=cacheon, dependson=c("bardesctreat", "descref"), fig.width=9, fig.height=7}
+
+funcdeskbar(ref)
+```
+
+```{r descmref, cache=cacheon, dependson="bardesctreat"}
+mref <- funcdesk2(ef2 = "HFmrEF")
+
+default_kable(mref %>% select(treat, treatstatus, nper),
+  col.names = c("Treatment", "Status", "n (%)"),
+  caption = "Treatment status after first HFH - HFmrEF",
+  escape = TRUE,
+  scale = F
+)
+```
+
+```{r descmrefbar, fig.cap = "Treatment status after first HFH - HFmrEF", cache=cacheon, dependson=c("bardesctreat", "descmref"), fig.width=9, fig.height=7}
+
+funcdeskbar(mref)
+```
+
+```{r descall, cache=cacheon, dependson="bardesctreat"}
+all <- funcdesk2(ef2 = c("HFrEF", "HFmrEF"))
+
+default_kable(all %>% select(treat, treatstatus, nper),
+  col.names = c("Treatment", "Status", "n (%)"),
+  caption = "Treatment status after first HFH - All (HFrEF + HFmrEF)",
+  escape = TRUE,
+  scale = F
+)
+```
+
+```{r descallbar, fig.cap = "Treatment status after first HFH - All (HFrEF + HFmrEF)", cache=cacheon, dependson=c("bardesctreat", "descall"), fig.width=9, fig.height=7}
+
+funcdeskbar(all)
+```

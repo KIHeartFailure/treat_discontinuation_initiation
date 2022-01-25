@@ -36,8 +36,8 @@ ref8m <- funcpred(efcat = "HFrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mr
 mref <- funcpred(efcat = "HFmrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post")
 mref8m <- funcpred(efcat = "HFmrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "HFmrEF (2 dd/8mo)")
 
-pef <- funcpred(efcat = "HFpEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post")
-pef8m <- funcpred(efcat = "HFpEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "HFpEF (2 dd/8mo)")
+ef <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "EF combined")
+ef8m <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "EF combined (2 dd/8mo)")
 
 all <- Reduce(
   function(...) {
@@ -45,10 +45,10 @@ all <- Reduce(
       by = "Variable"
     )
   },
-  list(ref, ref8m, mref, mref8m, pef, pef8m)
+  list(ref, ref8m, mref, mref8m, ef, ef8m)
 )
 
-write.xlsx(all, paste0("./output/tabs/pred_mra_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+write.xlsx(all, paste0("./output/tabs/pred_mra_disc_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
 
 default_kable(all,
   caption = "Predictors of treatment discontinuation MRA",
@@ -68,24 +68,27 @@ ref8m <- funcpred(efcat = "HFrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_r
 mref <- funcpred(efcat = "HFmrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post")
 mref8m <- funcpred(efcat = "HFmrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "HFmrEF (2 dd/8mo)")
 
+ef <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "EF combined")
+ef8m <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "EF combined (2 dd/8mo)")
+
 all <- Reduce(
   function(...) {
     full_join(...,
       by = "Variable"
     )
   },
-  list(ref, ref8m, mref, mref8m)
+  list(ref, ref8m, mref, mref8m, ef, ef8m)
 )
 
-write.xlsx(all, paste0("./output/tabs/pred_rasi_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+write.xlsx(all, paste0("./output/tabs/pred_rasi_disc_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
 
 default_kable(all,
-  caption = "Predictors of treatment discontinuation RASi",
+  caption = "Predictors of treatment discontinuation RASi/ARNi",
   escape = TRUE,
-  scale_down = F
+  scale_down = T
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 4))
+  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 6))
 ```
 
 ```{r predtreatdiscbbl, cache=cacheon, dependson="predtreatdisc"}
@@ -96,127 +99,6 @@ ref8m <- funcpred(efcat = "HFrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bb
 mref <- funcpred(efcat = "HFmrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post")
 mref8m <- funcpred(efcat = "HFmrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "HFmrEF (2 dd/8mo)")
 
-all <- Reduce(
-  function(...) {
-    full_join(...,
-      by = "Variable"
-    )
-  },
-  list(ref, ref8m, mref, mref8m)
-)
-
-write.xlsx(all, paste0("./output/tabs/pred_bbl_", Sys.Date(), ".xlsx"), rowNames = FALSE)
-
-default_kable(all,
-  caption = "Predictors of treatment discontinuation Bbl",
-  escape = TRUE,
-  scale_down = F
-) %>%
-  landscape() %>%
-  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 4))
-```
-
-```{r predtreatdiscloopd, cache=cacheon, dependson="predtreatdisc"}
-
-ref <- funcpred(
-  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes"
-)
-ref8m <- funcpred(
-  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "HFrEF (2 dd/8mo)"
-)
-
-mref <- funcpred(
-  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes"
-)
-mref8m <- funcpred(
-  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "HFmrEF (2 dd/8mo)"
-)
-
-pef <- funcpred(
-  efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes"
-)
-pef8m <- funcpred(
-  efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "HFpEF (2 dd/8mo)"
-)
-
-all <- Reduce(
-  function(...) {
-    full_join(...,
-      by = "Variable"
-    )
-  },
-  list(ref, ref8m, mref, mref8m, pef, pef8m)
-)
-
-write.xlsx(all, paste0("./output/tabs/pred_loopd_", Sys.Date(), ".xlsx"), rowNames = FALSE)
-
-default_kable(all,
-  caption = "Predictors of treatment initiation Loopdiuretics",
-  escape = TRUE,
-  scale_down = T
-) %>%
-  landscape() %>%
-  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 6))
-```
-
-```{r predtreatdiscmraall, cache=cacheon, dependson="predtreatdisc"}
-
-ef <- funcpred(efcat = c("HFrEF", "HFpEF", "HFmrEF"), medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "EF combined")
-ef8m <- funcpred(efcat = c("HFrEF", "HFpEF", "HFmrEF"), medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "EF combined (2 dd/8mo)")
-
-all <- Reduce(
-  function(...) {
-    full_join(...,
-      by = "Variable"
-    )
-  },
-  list(ef, ef8m)
-)
-
-write.xlsx(all, paste0("./output/tabs/pred_mraefcombined_", Sys.Date(), ".xlsx"), rowNames = FALSE)
-
-default_kable(all,
-  caption = "Predictors of treatment discontinuation MRA - EF combined",
-  escape = TRUE,
-  scale_down = F
-) %>%
-  landscape() %>%
-  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 2))
-```
-
-```{r predtreatdiscrasiall, cache=cacheon, dependson="predtreatdisc"}
-
-ef <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "EF combined")
-ef8m <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "EF combined (2 dd/8mo)")
-
-all <- Reduce(
-  function(...) {
-    full_join(...,
-      by = "Variable"
-    )
-  },
-  list(ef, ef8m)
-)
-
-write.xlsx(all, paste0("./output/tabs/pred_rasiefcombined_", Sys.Date(), ".xlsx"), rowNames = FALSE)
-
-default_kable(all,
-  caption = "Predictors of treatment discontinuation RASi - EF combined",
-  escape = TRUE,
-  scale_down = F
-) %>%
-  landscape() %>%
-  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 2))
-```
-
-```{r predtreatdiscbblall, cache=cacheon, dependson="predtreatdisc"}
-
 ef <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "EF combined")
 ef8m <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "EF combined (2 dd/8mo)")
 
@@ -226,25 +108,44 @@ all <- Reduce(
       by = "Variable"
     )
   },
-  list(ef, ef8m)
+  list(ref, ref8m, mref, mref8m, ef, ef8m)
 )
 
-write.xlsx(all, paste0("./output/tabs/pred_bblefcombined_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+write.xlsx(all, paste0("./output/tabs/pred_bbl_disc_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
 
 default_kable(all,
-  caption = "Predictors of treatment discontinuation Bbl - EF combined",
+  caption = "Predictors of treatment discontinuation Bbl",
   escape = TRUE,
-  scale_down = F
+  scale_down = T
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 2))
+  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 6))
 ```
 
-```{r predtreatdiscloopdall, cache=cacheon, dependson="predtreatdisc"}
+```{r predtreatdiscloopd, cache=cacheon, dependson="predtreatdisc"}
 
-ef <- funcpred(efcat = c("HFrEF", "HFpEF", "HFmrEF"), medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post", name = "EF combined")
-ef8m <- funcpred(efcat = c("HFrEF", "HFpEF", "HFmrEF"), medpre = "ddr_loopdiuretic_prior8m", 
-                 medpost = "ddr_loopdiuretic_post", name = "EF combined (2 dd/8mo)")
+ref <- funcpred(
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post"
+)
+ref8m <- funcpred(
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+  name = "HFrEF (2 dd/8mo)"
+)
+
+mref <- funcpred(
+  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post"
+)
+
+mref8m <- funcpred(
+  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+  name = "HFmrEF (2 dd/8mo)"
+)
+
+ef <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post", name = "EF combined")
+ef8m <- funcpred(
+  efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_loopdiuretic_prior8m",
+  medpost = "ddr_loopdiuretic_post", name = "EF combined (2 dd/8mo)"
+)
 
 all <- Reduce(
   function(...) {
@@ -252,16 +153,166 @@ all <- Reduce(
       by = "Variable"
     )
   },
-  list(ef, ef8m)
+  list(ref, ref8m, mref, mref8m, ef, ef8m)
 )
 
-write.xlsx(all, paste0("./output/tabs/pred_loopdefcombined_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+write.xlsx(all, paste0("./output/tabs/pred_loopd_disc_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
 
 default_kable(all,
-  caption = "Predictors of treatment initiation Loopdiuretics - EF combined",
+  caption = "Predictors of treatment discontinuation Loop diuretics",
   escape = TRUE,
-  scale_down = F
+  scale_down = T
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 2))
+  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 6))
+```
+
+```{r predtreatinimra, cache=cacheon, dependson="predtreatdisc"}
+
+ref <- funcpred(efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", valmedpre = "No", valmedpost = "Yes")
+ref8m <- funcpred(efcat = "HFrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "HFrEF (2 dd/8mo)", valmedpre = "No", valmedpost = "Yes")
+
+mref <- funcpred(efcat = "HFmrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", valmedpre = "No", valmedpost = "Yes")
+mref8m <- funcpred(efcat = "HFmrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "HFmrEF (2 dd/8mo)", valmedpre = "No", valmedpost = "Yes")
+
+ef <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "EF combined", valmedpre = "No", valmedpost = "Yes")
+ef8m <- funcpred(
+  efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "EF combined (2 dd/8mo)",
+  valmedpre = "No", valmedpost = "Yes"
+)
+
+all <- Reduce(
+  function(...) {
+    full_join(...,
+      by = "Variable"
+    )
+  },
+  list(ref, ref8m, mref, mref8m, ef, ef8m)
+)
+
+write.xlsx(all, paste0("./output/tabs/pred_mra_ini_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
+
+default_kable(all,
+  caption = "Predictors of treatment initiation MRA",
+  escape = TRUE,
+  scale_down = T
+) %>%
+  landscape() %>%
+  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 6))
+```
+
+```{r predtreatinirasi, cache=cacheon, dependson="predtreatdisc"}
+
+ref <- funcpred(efcat = "HFrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", valmedpre = "No", valmedpost = "Yes")
+ref8m <- funcpred(efcat = "HFrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "HFrEF (2 dd/8mo)", valmedpre = "No", valmedpost = "Yes")
+
+mref <- funcpred(efcat = "HFmrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", valmedpre = "No", valmedpost = "Yes")
+mref8m <- funcpred(efcat = "HFmrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "HFmrEF (2 dd/8mo)", valmedpre = "No", valmedpost = "Yes")
+
+ef <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "EF combined", valmedpre = "No", valmedpost = "Yes")
+ef8m <- funcpred(
+  efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "EF combined (2 dd/8mo)",
+  valmedpre = "No", valmedpost = "Yes"
+)
+
+all <- Reduce(
+  function(...) {
+    full_join(...,
+      by = "Variable"
+    )
+  },
+  list(ref, ref8m, mref, mref8m, ef, ef8m)
+)
+
+write.xlsx(all, paste0("./output/tabs/pred_rasi_ini_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
+
+default_kable(all,
+  caption = "Predictors of treatment initiation RASi/ARNi",
+  escape = TRUE,
+  scale_down = T
+) %>%
+  landscape() %>%
+  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 6))
+```
+
+```{r predtreatinicbbl, cache=cacheon, dependson="predtreatdisc"}
+
+ref <- funcpred(efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", valmedpre = "No", valmedpost = "Yes")
+ref8m <- funcpred(efcat = "HFrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "HFrEF (2 dd/8mo)", valmedpre = "No", valmedpost = "Yes")
+
+mref <- funcpred(efcat = "HFmrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", valmedpre = "No", valmedpost = "Yes")
+mref8m <- funcpred(efcat = "HFmrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "HFmrEF (2 dd/8mo)", valmedpre = "No", valmedpost = "Yes")
+
+ef <- funcpred(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "EF combined", valmedpre = "No", valmedpost = "Yes")
+ef8m <- funcpred(
+  efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "EF combined (2 dd/8mo)",
+  valmedpre = "No", valmedpost = "Yes"
+)
+
+all <- Reduce(
+  function(...) {
+    full_join(...,
+      by = "Variable"
+    )
+  },
+  list(ref, ref8m, mref, mref8m, ef, ef8m)
+)
+
+write.xlsx(all, paste0("./output/tabs/pred_bbl_ini_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
+
+default_kable(all,
+  caption = "Predictors of treatment initiation Bbl",
+  escape = TRUE,
+  scale_down = T
+) %>%
+  landscape() %>%
+  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 6))
+```
+
+```{r predtreatiniloopd, cache=cacheon, dependson="predtreatdisc"}
+
+ref <- funcpred(
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post", valmedpre = "No", valmedpost = "Yes"
+)
+ref8m <- funcpred(
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+  name = "HFrEF (2 dd/8mo)", valmedpre = "No", valmedpost = "Yes"
+)
+
+mref <- funcpred(
+  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post", valmedpre = "No", valmedpost = "Yes"
+)
+
+mref8m <- funcpred(
+  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+  name = "HFmrEF (2 dd/8mo)", valmedpre = "No", valmedpost = "Yes"
+)
+
+ef <- funcpred(
+  efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post", name = "EF combined",
+  valmedpre = "No", valmedpost = "Yes"
+)
+ef8m <- funcpred(
+  efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_loopdiuretic_prior8m",
+  medpost = "ddr_loopdiuretic_post", name = "EF combined (2 dd/8mo)", valmedpre = "No", valmedpost = "Yes"
+)
+
+all <- Reduce(
+  function(...) {
+    full_join(...,
+      by = "Variable"
+    )
+  },
+  list(ref, ref8m, mref, mref8m, ef, ef8m)
+)
+
+write.xlsx(all, paste0("./output/tabs/pred_loopd_ini_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
+
+default_kable(all,
+  caption = "Predictors of treatment initiation Loop diuretics",
+  escape = TRUE,
+  scale_down = T
+) %>%
+  landscape() %>%
+  add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 6))
 ```

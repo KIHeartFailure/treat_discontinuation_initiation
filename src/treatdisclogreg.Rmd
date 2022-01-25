@@ -1,40 +1,21 @@
-```{r treatdisclogreg, cache=cacheon}
+```{r treatdisclogfuncs, cache=cacheon}
 
-funclogreg <- function(efcat, medpre, medpost, valmedpre = "Yes", valmedpost = "No", name, nameef = FALSE) {
-  out <- data.frame(matrix(NA, ncol = 4, nrow = 3))
-  colnames(out) <- c("priormed", "model", levels(rsdata$sos_location))
+funclogreg <- function(efcat, medpre, medpost, medname, discini2) {
+  out <- data.frame(matrix(NA, ncol = 9, nrow = 3))
+  colnames(out) <- c("priormed", "model", levels(rsdata$sos_location), "logor", "lci", "uci", "orci", "pval")
 
-  outforest <- data.frame(matrix(NA, ncol = 8, nrow = 1))
-  colnames(outforest) <- c("priormed", "ef", "desk", "logor", "lci", "uci", "orci", "pval")
+  if (discini2 == "discontinuation") {
+    valmedpre <- "Yes"
+    valmedpost <- "No"
+  }
+  if (discini2 == "initiation") {
+    valmedpre <- "No"
+    valmedpost <- "Yes"
+  }
 
-  if (valmedpre == "Yes") {
-    nametmp <- name
-  }
-  if (valmedpre == "No") {
-    nametmp <- paste0("No ", name)
-  }
-  if (nameef) {
-    out[1:3, 1] <- paste0(rep(nametmp, 3), " (", paste0(efcat, collapse = ", "), ")")
-  }
-  if (!nameef) {
-    out[1:3, 1] <- rep(nametmp, 3)
-  }
+  out[1:3, 1] <- rep(medname, 3)
 
   out[1:3, 2] <- c("n (%)", "Crude OR (95% CI), p", "Adjusted OR (95% CI), p")
-
-  if (valmedpre == "Yes") {
-    outforest[1, 1] <- paste0(name, " discontinuation")
-  }
-  if (valmedpre == "No") {
-    outforest[1, 1] <- paste0(name, " initiation")
-  }
-
-  if (nameef) {
-    outforest[1, 2] <- paste0("All", " (", paste0(efcat, collapse = ", "), ")")
-  }
-  if (!nameef) {
-    outforest[1, 2] <- efcat
-  }
 
   # desk stat
   ds <- rsdata %>%
@@ -50,7 +31,6 @@ funclogreg <- function(efcat, medpre, medpost, valmedpre = "Yes", valmedpost = "
     pivot_wider(values_from = np, names_from = sos_location)
 
   out[1, 3:4] <- ds
-  outforest[1, 3] <- paste0(ds$`HF in-patient`, " vs. ", ds$`Out-patient`)
 
   # crude log reg
 
@@ -79,276 +59,317 @@ funclogreg <- function(efcat, medpre, medpost, valmedpre = "Yes", valmedpost = "
   )
   asmod <- summary(pool(amod))
 
-  oradj <- c("ref", paste0(
-    fn(exp(asmod$estimate[2]), dig = 1),
-    " (", fn(exp(asmod$estimate[2] - global_z05 * asmod$std.error[2]), dig = 1),
-    "-", fn(exp(asmod$estimate[2] + global_z05 * asmod$std.error[2]), dig = 1), "), ",
-    fn(asmod$p.value[2], dig = 3, p = TRUE)
-  ))
-
-  out[3, 3:4] <- oradj
-
   # for forestplot
-  outforest[1, 4] <- asmod$estimate[2]
-  outforest[1, 5] <- asmod$estimate[2] - global_z05 * asmod$std.error[2]
-  outforest[1, 6] <- asmod$estimate[2] + global_z05 * asmod$std.error[2]
-  outforest[1, 7] <- paste0(
+  out[3, 5] <- asmod$estimate[2]
+  out[3, 6] <- asmod$estimate[2] - global_z05 * asmod$std.error[2]
+  out[3, 7] <- asmod$estimate[2] + global_z05 * asmod$std.error[2]
+  out[3, 8] <- paste0(
     fn(exp(asmod$estimate[2]), dig = 1),
     " (", fn(exp(asmod$estimate[2] - global_z05 * asmod$std.error[2]), dig = 1),
     "-", fn(exp(asmod$estimate[2] + global_z05 * asmod$std.error[2]), dig = 1), ")"
   )
-  outforest[1, 8] <- fn(asmod$p.value[2], dig = 3, p = TRUE)
+  out[3, 9] <- fn(asmod$p.value[2], dig = 3, p = TRUE)
 
-  outboth <- list(out = out, outforest = outforest)
-  return(outboth)
+  out[3, 3:4] <- c("ref", paste0(out[3, 8], ", ", out[3, 9]))
+
+  return(out)
+}
+
+funclogreg2 <- function(discini) {
+
+  # HFrEF
+  outref <- funclogreg(efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", medname = "MRA", discini2 = discini)
+  outref <- rbind(outref, funclogreg(efcat = "HFrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", medname = "MRA 2 dd/8 mo", discini2 = discini))
+
+  outref <- rbind(outref, funclogreg(efcat = "HFrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", medname = "RASi/ARNi", discini2 = discini))
+  outref <- rbind(outref, funclogreg(efcat = "HFrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", medname = "RASi/ARNi 2 dd/8 mo", discini2 = discini))
+
+  outref <- rbind(outref, funclogreg(efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", medname = "Betablocker", discini2 = discini))
+  outref <- rbind(outref, funclogreg(efcat = "HFrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", medname = "Betablocker 2 dd/8 mo", discini2 = discini))
+
+  outref <- rbind(outref, funclogreg(
+    efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+    medname = "Loop diuretic", discini2 = discini
+  ))
+  outref <- rbind(outref, funclogreg(
+    efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+    medname = "Loop diuretic 2 dd/8 mo", discini2 = discini
+  ))
+
+  # HFmrEF
+  outmref <- funclogreg(efcat = "HFmrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", medname = "MRA", discini2 = discini)
+  outmref <- rbind(outmref, funclogreg(efcat = "HFmrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", medname = "MRA 2 dd/8 mo", discini2 = discini))
+
+  outmref <- rbind(outmref, funclogreg(efcat = "HFmrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", medname = "RASi/ARNi", discini2 = discini))
+  outmref <- rbind(outmref, funclogreg(
+    efcat = "HFmrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post",
+    medname = "RASi/ARNi 2 dd/8 mo", discini2 = discini
+  ))
+
+  outmref <- rbind(outmref, funclogreg(efcat = "HFmrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", medname = "Betablocker", discini2 = discini))
+  outmref <- rbind(outmref, funclogreg(
+    efcat = "HFmrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post",
+    medname = "Betablocker 2 dd/8 mo", discini2 = discini
+  ))
+
+  outmref <- rbind(outmref, funclogreg(
+    efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+    medname = "Loop diuretic", discini2 = discini
+  ))
+  outmref <- rbind(outmref, funclogreg(
+    efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+    medname = "Loop diuretic 2 dd/8 mo", discini2 = discini
+  ))
+
+  # All
+  outall <- funclogreg(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_mra_prior", medpost = "ddr_mra_post", medname = "MRA", discini2 = discini)
+  outall <- rbind(outall, funclogreg(
+    efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post",
+    medname = "MRA 2 dd/8 mo", discini2 = discini
+  ))
+
+  outall <- rbind(outall, funclogreg(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", medname = "RASi/ARNi", discini2 = discini))
+  outall <- rbind(outall, funclogreg(
+    efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post",
+    medname = "RASi/ARNi 2 dd/8 mo", discini2 = discini
+  ))
+
+  outall <- rbind(outall, funclogreg(efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", medname = "Betablocker", discini2 = discini))
+  outall <- rbind(outall, funclogreg(
+    efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post",
+    medname = "Betablocker 2 dd/8 mo", discini2 = discini
+  ))
+
+  outall <- rbind(outall, funclogreg(
+    efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+    medname = "Loop diuretic", discini2 = discini
+  ))
+  outall <- rbind(outall, funclogreg(
+    efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+    medname = "Loop diuretic 2 dd/8 mo", discini2 = discini
+  ))
+
+  outprint <- cbind(
+    outref %>% select(priormed:`HF in-patient`),
+    outmref %>% select(`Out-patient`:`HF in-patient`),
+    outall %>% select(`Out-patient`:`HF in-patient`)
+  )
+
+  outforestref <-
+    outref %>%
+    mutate(cons = str_detect(priormed, "2 dd/8 mo")) %>%
+    filter(model %in% c("n (%)", "Adjusted OR (95% CI), p") &
+      !cons) %>%
+    mutate(
+      ds = paste0(`HF in-patient`, " vs. ", `Out-patient`),
+      ds = if_else(model == "Adjusted OR (95% CI), p", lag(ds), ds),
+      hf = "HFrEF"
+    ) %>%
+    filter(model %in% c("Adjusted OR (95% CI), p")) %>%
+    select(priormed, hf, ds, logor:pval)
+
+  outforestmref <-
+    outmref %>%
+    mutate(cons = str_detect(priormed, "2 dd/8 mo")) %>%
+    filter(model %in% c("n (%)", "Adjusted OR (95% CI), p") &
+      !cons) %>%
+    mutate(
+      ds = paste0(`HF in-patient`, " vs. ", `Out-patient`),
+      ds = if_else(model == "Adjusted OR (95% CI), p", lag(ds), ds),
+      hf = "HFmrEF"
+    ) %>%
+    filter(model %in% c("Adjusted OR (95% CI), p")) %>%
+    select(priormed, hf, ds, logor:pval)
+
+  outforestall <-
+    outall %>%
+    mutate(cons = str_detect(priormed, "2 dd/8 mo")) %>%
+    filter(model %in% c("n (%)", "Adjusted OR (95% CI), p") &
+      !cons) %>%
+    mutate(
+      ds = paste0(`HF in-patient`, " vs. ", `Out-patient`),
+      ds = if_else(model == "Adjusted OR (95% CI), p", lag(ds), ds),
+      hf = "All (HFrEF + HFmrEF)"
+    ) %>%
+    filter(model %in% c("Adjusted OR (95% CI), p")) %>%
+    select(priormed, hf, ds, logor:pval)
+
+  outforest <- bind_rows(outforestref, outforestmref, outforestall)
+
+  write.xlsx(outprint, paste0("./output/tabs/logreg_", discini, "_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
+
+  ## fix in order to use escape = TRUE
+  colnames(outprint) <- sanitize_text(c("Prior medication", "Model", rep(c("Out-patient", "HF in-patient"), 3)))
+
+  return(out <- list(outprint = outprint, outforest = outforest))
 }
 ```
 
-```{r treatdisclogregef, cache=cacheon, dependson="treatdisclogreg"}
-# HFrEF
-rmra <- funclogreg(efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
-rmra8m <- funclogreg(efcat = "HFrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo")
+```{r treatdisclogforestfunc, cache=cacheon}
 
-rrasi <- funclogreg(efcat = "HFrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
-rrasi8m <- funclogreg(efcat = "HFrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo")
-
-rbbl <- funclogreg(efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Betablocker")
-rbbl8m <- funclogreg(efcat = "HFrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Betablocker 2 dd/8 mo")
-
-rloop <- funclogreg(
-  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "Loop diuretic"
-)
-rloop8m <- funclogreg(
-  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "Loop diuretic 2 dd/8 mo"
-)
-
-refall <- bind_rows(rmra$out, rmra8m$out, rrasi$out, rrasi8m$out, rbbl$out, rbbl8m$out, rloop$out, rloop8m$out)
-
-# HFmrEF
-mrmra <- funclogreg(efcat = "HFmrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
-mrmra8m <- funclogreg(efcat = "HFmrEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo")
-
-mrrasi <- funclogreg(efcat = "HFmrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi")
-mrrasi8m <- funclogreg(efcat = "HFmrEF", medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo")
-
-mrbbl <- funclogreg(efcat = "HFmrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Betablocker")
-mrbbl8m <- funclogreg(efcat = "HFmrEF", medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Betablocker 2 dd/8 mo")
-
-mrloop <- funclogreg(
-  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "Loop diuretic"
-)
-mrloop8m <- funclogreg(
-  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "Loop diuretic 2 dd/8 mo"
-)
-
-mrefall <- bind_rows(mrmra$out, mrmra8m$out, mrrasi$out, mrrasi8m$out, mrbbl$out, mrbbl8m$out, mrloop$out, mrloop8m$out)
-
-# HFpEF
-pmra <- funclogreg(efcat = "HFpEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA")
-pmra8m <- funclogreg(efcat = "HFpEF", medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post", name = "MRA 2 dd/8 mo")
-
-ploop <- funclogreg(
-  efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "Loop diuretic"
-)
-ploop8m <- funclogreg(
-  efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "Loop diuretic 2 dd/8 mo"
-)
-
-pefall <- bind_rows(pmra$out, pmra8m$out, ploop$out, ploop8m$out)
-
-ovall <- Reduce(
-  function(...) {
-    full_join(...,
-      by = c("priormed", "model")
+funclogregforest <- function(data, discini, axismy) {
+  foresttmp <- tibble(
+    hf = c(
+      paste0("MRA ", discini),
+      paste0("RASi/ARNi ", discini),
+      paste0("Betablocker ", discini),
+      paste0("Loop diuretic ", discini)
+    ),
+    priormed = c(
+      "MRA",
+      "RASi/ARNi",
+      "Betablocker",
+      "Loop diuretic"
     )
-  },
-  list(refall, mrefall, pefall)
-)
+  )
+  forest <- bind_rows(foresttmp, data) %>%
+    mutate(
+      priormedno = case_when(
+        priormed == "MRA" ~ 1,
+        priormed == "RASi/ARNi" ~ 2,
+        priormed == "Betablocker" ~ 3,
+        priormed == "Loop diuretic" ~ 4,
+      ),
+      hfno = case_when(
+        hf == "HFrEF" ~ 2,
+        hf == "HFmrEF" ~ 3,
+        hf == "All (HFrEF + HFmrEF)" ~ 4,
+        TRUE ~ 1
+      )
+    ) %>%
+    arrange(priormedno, hfno)
 
-write.xlsx(ovall, paste0("./output/tabs/logreg_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+  forest <- forest %>%
+    mutate(
+      order = n():1,
+      cols = case_when(
+        hf == "HFrEF" ~ global_kicols[2],
+        hf == "HFmrEF" ~ global_kicols[3],
+        hf == "All (HFrEF + HFmrEF)" ~ global_kicols[1]
+      )
+    )
 
-## fix in order to use escape = TRUE
-colnames(ovall) <- sanitize_text(c("Prior medication", "Model", rep(c("Out-patient", "HF in-patient"), 3)))
+  cextext <- 1.1
 
-default_kable(ovall,
-  caption = "Treatment discontinuation (MRA, RASi, Bbl)/initiation (Loopdiuretic)",
+  # exp(min(as.numeric(forest$lci), na.rm = T))
+  # exp(max(as.numeric(forest$uci), na.rm = T))
+  ylim <- c(min(axismy), max(axismy))
+
+  # c(bottom, left, top, right)
+  par(mar = c(3, 26, 0.5, 10) + 0.2)
+
+  plot(forest$logor, forest$order,
+    cex = 2,
+    xlim = log(ylim),
+    xlab = "",
+    cex.lab = cextext,
+    ylim = c(1, max(forest$order) + .4),
+    axes = FALSE,
+    ylab = NA,
+    main = NA,
+    type = "p",
+    pch = 22,
+    bg = forest$cols,
+    col = forest$cols,
+    xaxs = "i"
+  )
+
+  for (i in 1:nrow(forest)) {
+    if (!is.na(forest$lci[i])) {
+      matplot(c(forest$lci[i], forest$uci[i]), c(forest$order[i], forest$order[i]),
+        type = "l", add = TRUE, col = forest$cols[i], cex = 1, lwd = 2
+      )
+    }
+  }
+
+  matplot(c(log(1), log(1)), c(-1, max(forest$order)), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
+
+  axis(1,
+    cex.axis = cextext, at = log(axismy),
+    labels = axismy, gap.axis = -100000
+  )
+
+  axis(2,
+    at = forest %>% filter(hfno == 1) %>% pull(order),
+    labels = forest %>% filter(hfno == 1) %>% pull(hf),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 12, hadj = 1, font = 2
+  )
+  axis(2,
+    at = forest %>% filter(hfno != 1) %>% pull(order),
+    labels = forest %>% filter(hfno != 1) %>% pull(hf),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 12, hadj = 1
+  )
+
+  axis(2,
+    at = max(forest$order) + 1,
+    labels = "Events",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 5.5, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = forest %>% pull(order),
+    labels = forest %>% pull(ds),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 5.5, hadj = 0.5
+  )
+
+  axis(2,
+    at = max(forest$order) + 1,
+    labels = "OR (95% CI)",
+    cex.axis = cextext, tick = FALSE, las = 2, line = -18, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = forest %>% pull(order),
+    labels = forest %>% pull(orci),
+    cex.axis = cextext, tick = FALSE, las = 2, line = -18, hadj = 0.5
+  )
+
+  axis(2,
+    at = max(forest$order) + 1,
+    labels = "P-value",
+    cex.axis = cextext, tick = FALSE, las = 2, line = -23, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = forest %>% pull(order),
+    labels = forest %>% pull(pval),
+    cex.axis = cextext, tick = FALSE, las = 2, line = -23, hadj = 0.5
+  )
+
+  axis(1,
+    at = (log(ylim[2]) - abs(log(ylim[1]))) / 2, cex.axis = cextext,
+    labels = "OR (95% CI)", line = 1, tick = FALSE
+  )
+}
+```
+
+```{r treatdisc, cache=cacheon, dependson=c("treatdisclogfuncs")}
+
+discdata <- funclogreg2(discini = "discontinuation")
+
+default_kable(discdata$outprint,
+  caption = "Treatment discontinuation",
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFpEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```
 
-```{r treatdisclogregefcomb, cache=cacheon, dependson="treatdisclogreg"}
+```{r treatdiscforest, fig.cap = "Treatment discontinuation", cache=cacheon, dependson=c("treatdisclogfuncs", "treatdisc", "treatdisclogforestfunc"), fig.width=10, fig.height=7}
 
-mra <- funclogreg(efcat = c("HFpEF", "HFmrEF", "HFrEF"), medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA", nameef = TRUE)
-mra8m <- funclogreg(
-  efcat = c("HFpEF", "HFmrEF", "HFrEF"), medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post",
-  name = "MRA 2 dd/8 mo", nameef = TRUE
-)
+funclogregforest(data = discdata$outforest, discini = "discontinuation", axismy = c(0.1, 0.5, 1, 1.5, 2.5))
+```
 
-rasi <- funclogreg(efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi", nameef = TRUE)
-rasi8m <- funclogreg(efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post", name = "RASi 2 dd/8 mo", nameef = TRUE)
+```{r treatini, cache=cacheon, dependson=c("treatdisclogfuncs")}
 
-bbl <- funclogreg(efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Betablocker", nameef = TRUE)
-bbl8m <- funclogreg(efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post", name = "Betablocker 2 dd/8 mo", nameef = TRUE)
+inidata <- funclogreg2(discini = "initiation")
 
-loop <- funclogreg(
-  efcat = c("HFpEF", "HFmrEF", "HFrEF"), medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "Loop diuretic", nameef = TRUE
-)
-loop8m <- funclogreg(
-  efcat = c("HFpEF", "HFmrEF", "HFrEF"), medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-  valmedpre = "No", valmedpost = "Yes", name = "Loop diuretic 2 dd/8 mo", nameef = TRUE
-)
-
-efall <- bind_rows(mra$out, mra8m$out, rasi$out, rasi8m$out, bbl$out, bbl8m$out, loop$out, loop8m$out)
-
-write.xlsx(efall, paste0("./output/tabs/logregefcombined_", Sys.Date(), ".xlsx"), rowNames = FALSE)
-
-## fix in order to use escape = TRUE
-colnames(efall) <- sanitize_text(c("Prior medication", "Model", "Out-patient", "HF in-patient"))
-
-default_kable(efall,
-  caption = "Treatment discontinuation (MRA, RASi, Bbl)/initiation (Loopdiuretic) - EF combined)",
-  escape = TRUE,
-  scale_down = FALSE
+default_kable(inidata$outprint,
+  caption = "Treatment initiation",
+  escape = TRUE
 ) %>%
-  landscape()
+  landscape() %>%
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```
 
-```{r treatdisclogregefforest, fig.cap = "Treatment discontinuation (MRA, RASi, Bbl)/initiation (Loopdiuretic)", cache=cacheon, dependson=c("treatdisclogreg", "treatdisclogregef", "treatdisclogregefcomb"), fig.width=10, fig.height=7}
+```{r treatiniforest, fig.cap = "Treatment initiation", cache=cacheon, dependson=c("treatdisclogfuncs", "treatini", "treatdisclogforestfunc"), fig.width=10, fig.height=7}
 
-forest <- rbind(
-  c("MRA discontinuation", rep(NA, 7)),
-  rmra$outforest,
-  mrmra$outforest,
-  pmra$outforest,
-  mra$outforest,
-  c("RASi discontinuation", rep(NA, 7)),
-  rrasi$outforest,
-  mrrasi$outforest,
-  rasi$outforest,
-  c("Betablocker discontinuation", rep(NA, 7)),
-  rbbl$outforest,
-  mrbbl$outforest,
-  bbl$outforest,
-  c("Loop diuretic initiation", rep(NA, 7)),
-  rloop$outforest,
-  mrloop$outforest,
-  ploop$outforest,
-  loop$outforest
-)
-
-forest <- forest %>%
-  mutate(
-    priormed = if_else(is.na(ef), priormed, NA_character_),
-    order = n():1,
-    cols = case_when(
-      is.na(ef) ~ "black",
-      ef == "HFrEF" ~ global_kicols[2],
-      ef == "HFmrEF" ~ global_kicols[3],
-      ef == "HFpEF" ~ global_kicols[4],
-      TRUE ~ global_kicols[1]
-    )
-  )
-
-cextext <- 1.1
-
-# exp(min(as.numeric(forest$lci), na.rm = T))
-# exp(max(as.numeric(forest$uci), na.rm = T))
-minmy <- .75
-maxmy <- 25
-
-# c(bottom, left, top, right)
-par(mar = c(3, 25, 0, 10) + 0.2)
-
-plot(forest$logor, forest$order,
-  cex = 2,
-  xlim = c(
-    log(minmy),
-    log(maxmy)
-  ),
-  xlab = "",
-  cex.lab = cextext,
-  ylim = c(1, max(forest$order) + .4),
-  axes = FALSE,
-  ylab = NA,
-  main = NA,
-  type = "p",
-  pch = 22,
-  bg = forest$cols,
-  col = forest$cols,
-  xaxs = "i"
-)
-
-for (i in 1:nrow(forest)) {
-  if (!is.na(forest$lci[i])) {
-    matplot(c(forest$lci[i], forest$uci[i]), c(forest$order[i], forest$order[i]),
-      type = "l", add = TRUE, col = forest$cols[i], cex = 1, lwd = 2
-    )
-  }
-}
-
-matplot(c(log(1), log(1)), c(-1, max(forest$order)), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
-
-axismy <- c(0.75, 1, 5, 15, 25)
-axis(1,
-  cex.axis = cextext, at = log(axismy),
-  labels = axismy, gap.axis = -100000
-)
-
-axis(2,
-  at = forest %>% filter(is.na(ef)) %>% pull(order),
-  labels = forest %>% filter(is.na(ef)) %>% pull(priormed),
-  cex.axis = cextext, tick = FALSE, las = 2, line = 12, hadj = 1, font = 2
-)
-axis(2,
-  at = forest %>% filter(!is.na(ef)) %>% pull(order),
-  labels = forest %>% filter(!is.na(ef)) %>% pull(ef),
-  cex.axis = cextext, tick = FALSE, las = 2, line = 12, hadj = 1
-)
-
-axis(2,
-  at = max(forest$order) + 1,
-  labels = "Events",
-  cex.axis = cextext, tick = FALSE, las = 2, line = 5.5, hadj = 0.5, font = 2
-)
-axis(2,
-  at = forest %>% filter(!is.na(ef)) %>% pull(order),
-  labels = forest %>% filter(!is.na(ef)) %>% pull(desk),
-  cex.axis = cextext, tick = FALSE, las = 2, line = 5.5, hadj = 0.5
-)
-
-axis(2,
-  at = max(forest$order) + 1,
-  labels = "OR (95% CI)",
-  cex.axis = cextext, tick = FALSE, las = 2, line = -19, hadj = 0.5, font = 2
-)
-axis(2,
-  at = forest %>% filter(!is.na(ef)) %>% pull(order),
-  labels = forest %>% filter(!is.na(ef)) %>% pull(orci),
-  cex.axis = cextext, tick = FALSE, las = 2, line = -19, hadj = 0.5
-)
-
-axis(2,
-  at = max(forest$order) + 1,
-  labels = "P-value",
-  cex.axis = cextext, tick = FALSE, las = 2, line = -24, hadj = 0.5, font = 2
-)
-axis(2,
-  at = forest %>% filter(!is.na(ef)) %>% pull(order),
-  labels = forest %>% filter(!is.na(ef)) %>% pull(pval),
-  cex.axis = cextext, tick = FALSE, las = 2, line = -24, hadj = 0.5
-)
-
-axis(1,
-  at = (log(maxmy) - abs(log(minmy))) / 2, cex.axis = cextext,
-  labels = "OR (95% CI)", line = 1, tick = FALSE
-)
+funclogregforest(inidata$outforest, discini = "initiation", axismy = c(1, 5, 10, 15, 25))
 ```

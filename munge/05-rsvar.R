@@ -26,12 +26,11 @@ rsdata <- rsdata %>%
     ),
 
     shf_ef_cat = factor(case_when(
-      shf_ef == ">=50" ~ 3,
       shf_ef == "40-49" ~ 2,
       shf_ef %in% c("30-39", "<30") ~ 1
     ),
-    labels = c("HFrEF", "HFmrEF", "HFpEF"),
-    levels = 1:3
+    labels = c("HFrEF", "HFmrEF"),
+    levels = 1:2
     ),
 
     shf_smoking_cat = factor(case_when(

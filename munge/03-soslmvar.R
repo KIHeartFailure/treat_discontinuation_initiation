@@ -127,11 +127,13 @@ lmtreats <- function(atc, treatname) {
 }
 
 
-lmtreats(atc = "^(C09A|C09B|C09C|C09D(?!X04))", treatname = "rasi")
+lmtreats(atc = "^(C09A|C09B|C09C|C09D)", treatname = "rasi")
 
 lmtreats("^(C09A|C09B)", "acei")
 
 lmtreats("^(C09C|C09D(?!X04))", "arb")
+
+lmtreats("^C09DX04", "arni")
 
 lmtreats("^(C03CA|C03CB|C03EB)", "loopdiuretic")
 

@@ -1,10 +1,130 @@
+```{r tab1all, cache=cacheon}
+
+# ref
+tab1ref <- print(CreateTableOne(
+  vars = tabvars,
+  data = rsdata %>% filter(shf_ef_cat == "HFrEF"),
+  strata = "sos_location"
+),
+missing = TRUE,
+printToggle = FALSE,
+nonnormal = tabvars,
+catDigits = 1,
+contDigits = 1,
+noSpaces = TRUE,
+explain = FALSE
+)
+tab1ref <- as_tibble(cbind(var = rownames(tab1ref), tab1ref)) %>%
+  select(var, Missing, `Out-patient`, `HF in-patient`, p)
+
+# mref
+tab1mref <- print(CreateTableOne(
+  vars = tabvars,
+  data = rsdata %>% filter(shf_ef_cat == "HFmrEF"),
+  strata = "sos_location"
+),
+missing = TRUE,
+printToggle = FALSE,
+nonnormal = tabvars,
+catDigits = 1,
+contDigits = 1,
+noSpaces = TRUE,
+explain = FALSE
+)
+tab1mref <- as_tibble(cbind(var = rownames(tab1mref), tab1mref)) %>%
+  select(var, Missing, `Out-patient`, `HF in-patient`, p)
+
+tab1 <- full_join(tab1ref, tab1mref, by = "var")
+
+tab1 <- tab1 %>%
+  # remove = Yes
+  mutate(across(everything(), str_replace_all, fixed(" = Yes"), "")) %>%
+  # to get labs and units in place
+  mutate(
+    var_tmp = str_split(var, " = ", simplify = TRUE)[, 1],
+    val_tmp = str_split(var, " = ", simplify = TRUE)[, 2],
+    # if recoding or categorizing will still get org label
+    var_tmp2 = str_replace_all(var_tmp, "(_cat2|_cat)", ""),
+    # if shf/sos combination  will still get org label
+    var_tmp2 = str_replace_all(var_tmp2, "shf_sos_com_", "sos_com_"),
+  )
+
+tab1 <- left_join(tab1,
+  meta.variables.Sheet.1 %>%
+    select(variable, label, unit),
+  by = c("var_tmp2" = "variable")
+) %>%
+  mutate(
+    Variable = coalesce(label, var_tmp),
+    Variable = if_else(!is.na(unit),
+      paste0(Variable, " (", unit, ")"),
+      Variable
+    ),
+    Variable = if_else(val_tmp != "",
+      paste0(Variable, " ", val_tmp),
+      Variable
+    )
+  )
+
+write.xlsx(tab1 %>% select(Variable, Missing.x:p.y), paste0("./output/tabs/tab1_All patients_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+# footnotes
+tab1 <- tab1 %>%
+  mutate(
+    footnote1 = if_else(str_detect(var_tmp, "^shf_"), footnote_marker_symbol(1), ""),
+    footnote2 = if_else(str_detect(var_tmp, "sos_"), footnote_marker_symbol(2), ""),
+    footnote3 = if_else(str_detect(var_tmp, "^scb_"), footnote_marker_symbol(3), ""),
+    footnote4 = if_else(str_detect(var_tmp, "^scb_dispincome_cat"), footnote_marker_symbol(4), ""),
+    footnote5 = if_else(str_detect(var_tmp, "^shf_ntprobnp_cat"), footnote_marker_symbol(5), ""),
+    footnote6 = if_else(var_tmp %in% impvars, footnote_marker_symbol(6), ""),
+    footnote7 = if_else(var_tmp %in% modvars, footnote_marker_symbol(7), "")
+  ) %>%
+  unite(footnote, starts_with("footnote"), sep = "") %>%
+  mutate(
+    # so no probs
+    Variable = sanitize_text(Variable),
+
+    Variable = paste0(Variable, footnote),
+
+    # space in Latex output (fix this other way?)
+    Variable = sub("  ", ". ", Variable)
+  ) %>%
+  select(Variable, Missing.x:p.y)
+
+## fix in order to use escape = TRUE
+colnames(tab1) <- sanitize_text(c("Variable", rep(c("Missing (%)", "Out-patient", "HF in-patient", "p-value"), 2)))
+
+footnote(
+  default_kable(tab1,
+    font_size = 5,
+    caption = "Baseline characteristics by EF",
+    longtable = TRUE,
+    escape = FALSE
+  ) %>%
+    landscape() %>%
+    add_header_above(c(" " = 1, "HFrEF" = 4, "HFmrEF" = 4)),
+  general = c(
+    "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test."
+  ),
+  symbol = c(
+    "Source: SwedeHF",
+    "Source: NPR",
+    "Source: SCB",
+    "Medium within index year",
+    "Medium within EF",
+    "Included in multiple imputation model",
+    "Adjusted for in logistic/cox regression models"
+  )
+)
+```
+
 ```{r tab1func, cache=cacheon}
 
-tab1func <- function(data, title) {
-  # ref
-  tab1ref <- print(CreateTableOne(
+tab1func <- function(medpre, title) {
+  # prev on treat
+  tab1yes <- print(CreateTableOne(
     vars = tabvars,
-    data = data %>% filter(shf_ef_cat == "HFrEF"),
+    data = rsdata %>% filter(!!sym(medpre) == "Yes"),
     strata = "sos_location"
   ),
   missing = TRUE,
@@ -15,13 +135,13 @@ tab1func <- function(data, title) {
   noSpaces = TRUE,
   explain = FALSE
   )
-  tab1ref <- as_tibble(cbind(var = rownames(tab1ref), tab1ref)) %>%
+  tab1yes <- as_tibble(cbind(var = rownames(tab1yes), tab1yes)) %>%
     select(var, Missing, `Out-patient`, `HF in-patient`, p)
 
-  # mref
-  tab1mref <- print(CreateTableOne(
+  # prev not on treat
+  tab1no <- print(CreateTableOne(
     vars = tabvars,
-    data = data %>% filter(shf_ef_cat == "HFmrEF"),
+    data = rsdata %>% filter(!!sym(medpre) == "No"),
     strata = "sos_location"
   ),
   missing = TRUE,
@@ -32,34 +152,10 @@ tab1func <- function(data, title) {
   noSpaces = TRUE,
   explain = FALSE
   )
-  tab1mref <- as_tibble(cbind(var = rownames(tab1mref), tab1mref)) %>%
+  tab1no <- as_tibble(cbind(var = rownames(tab1no), tab1no)) %>%
     select(var, Missing, `Out-patient`, `HF in-patient`, p)
 
-  # pef
-  tab1pef <- print(CreateTableOne(
-    vars = tabvars,
-    data = data %>% filter(shf_ef_cat == "HFpEF"),
-    strata = "sos_location"
-  ),
-  missing = TRUE,
-  printToggle = FALSE,
-  nonnormal = tabvars,
-  catDigits = 1,
-  contDigits = 1,
-  noSpaces = TRUE,
-  explain = FALSE
-  )
-  tab1pef <- as_tibble(cbind(var = rownames(tab1pef), tab1pef)) %>%
-    select(var, Missing, `Out-patient`, `HF in-patient`, p)
-
-  tab1 <- Reduce(
-    function(...) {
-      full_join(...,
-        by = "var"
-      )
-    },
-    list(tab1ref, tab1mref, tab1pef)
-  )
+  tab1 <- full_join(tab1no, tab1yes, by = "var")
 
   tab1 <- tab1 %>%
     # remove = Yes
@@ -91,7 +187,7 @@ tab1func <- function(data, title) {
       )
     )
 
-  write.xlsx(tab1 %>% select(Variable, Missing.x:p), paste0("./output/tabs/tab1_", title, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+  write.xlsx(tab1 %>% select(Variable, Missing.x:p.y), paste0("./output/tabs/tab1_", title, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
 
   # footnotes
   tab1 <- tab1 %>%
@@ -114,20 +210,20 @@ tab1func <- function(data, title) {
       # space in Latex output (fix this other way?)
       Variable = sub("  ", ". ", Variable)
     ) %>%
-    select(Variable, Missing.x:p)
+    select(Variable, Missing.x:p.y)
 
   ## fix in order to use escape = TRUE
-  colnames(tab1) <- sanitize_text(c("Variable", rep(c("Missing (%)", "Out-patient", "HF in-patient", "p-value"), 3)))
+  colnames(tab1) <- sanitize_text(c("Variable", rep(c("Missing (%)", "Out-patient", "HF in-patient", "p-value"), 2)))
 
   footnote(
     default_kable(tab1,
-      font_size = 3,
-      caption = paste0("Baseline characteristics - ", title),
+      font_size = 5,
+      caption = paste0("Baseline characteristics by ", title),
       longtable = TRUE,
       escape = FALSE
     ) %>%
       landscape() %>%
-      add_header_above(c(" " = 1, "HFrEF" = 4, "HFmrEF" = 4, "HFpEF" = 4)),
+      add_header_above(c(" " = 1, "No prior use" = 4, "Prior use" = 4)),
     general = c(
       "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test."
     ),
@@ -144,39 +240,34 @@ tab1func <- function(data, title) {
 }
 ```
 
-```{r tab1all, cache=cacheon, dependson="tab1func"}
-
-tab1func(rsdata, "All patients")
-```
-
 ```{r tab1mra, cache=cacheon, dependson="tab1func"}
 
 tab1func(
-  data = rsdata %>% filter(ddr_mra_prior == "Yes"),
-  title = "Patients with prior MRA use"
+  medpre = "ddr_mra_prior",
+  title = "prior MRA use"
 )
 ```
 
 ```{r tab1rasi, cache=cacheon, dependson="tab1func"}
 
 tab1func(
-  data = rsdata %>% filter(ddr_rasi_prior == "Yes"),
-  title = "Patients with prior RASi use"
+  medpre = "ddr_rasi_prior",
+  title = "prior RASi/ARNi use"
 )
 ```
 
 ```{r tab1bbl, cache=cacheon, dependson="tab1func"}
 
 tab1func(
-  data = rsdata %>% filter(ddr_bbl_prior == "Yes"),
-  title = "Patients with prior Bbl use"
+  medpre = "ddr_bbl_prior",
+  title = "prior Bbl use"
 )
 ```
 
 ```{r tab1loop, cache=cacheon, dependson="tab1func"}
 
 tab1func(
-  data = rsdata %>% filter(ddr_loopdiuretic_prior == "No"),
-  title = "Patients without prior Loopdiuretic use"
+  medpre = "ddr_loopdiuretic_prior",
+  title = "prior Loopdiuretic use"
 )
 ```

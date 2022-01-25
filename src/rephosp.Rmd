@@ -41,7 +41,7 @@ rsdata <- rsdata %>%
     )
   )
 
-bardatafunc <- function(data2, treat2, time, minfollowup, timevalue) {
+bardatafunc <- function(data2, treat2, time, minfollowup, timevalue, postvalue2) {
   treatvar <- paste0("ddr_", treat2, "_post", time)
   hfhospvar <- paste0("sos_out_nohosphf", time, "_cat")
 
@@ -56,19 +56,20 @@ bardatafunc <- function(data2, treat2, time, minfollowup, timevalue) {
       ntot = sum(n)
     ) %>%
     ungroup() %>%
-    filter(!!sym(treatvar) == "No") %>%
+    filter(!!sym(treatvar) == postvalue2) %>%
     mutate(time = timevalue) %>%
     rename(sos_out_nohosphfall = !!sym(hfhospvar)) %>%
     select(sos_out_nohosphfall, time, ntot, n, freq)
 }
 
-reptreatbar <- function(data, treat, ymax = 100) {
+reptreatbar <- function(data, treat, ymax = 100, postvalue) {
   bardata6m <- bardatafunc(
     data2 = data,
     treat2 = treat,
     time = "6m",
     minfollowup = 365,
-    timevalue = 0
+    timevalue = 0,
+    postvalue2 = postvalue
   )
 
   bardata1y <- bardatafunc(
@@ -76,7 +77,8 @@ reptreatbar <- function(data, treat, ymax = 100) {
     treat2 = treat,
     time = "1y",
     minfollowup = 365 * 1.5,
-    timevalue = 1
+    timevalue = 1,
+    postvalue2 = postvalue
   )
 
   bardata2y <- bardatafunc(
@@ -84,7 +86,8 @@ reptreatbar <- function(data, treat, ymax = 100) {
     treat2 = treat,
     time = "2y",
     minfollowup = 365 * 2.5,
-    timevalue = 2
+    timevalue = 2,
+    postvalue2 = postvalue
   )
 
   bardata3y <- bardatafunc(
@@ -92,7 +95,8 @@ reptreatbar <- function(data, treat, ymax = 100) {
     treat2 = treat,
     time = "3y",
     minfollowup = 365 * 3.5,
-    timevalue = 3
+    timevalue = 3,
+    postvalue2 = postvalue
   )
 
   bardataall <- bind_rows(bardata6m, bardata1y, bardata2y, bardata3y) %>%
@@ -109,6 +113,7 @@ reptreatbar <- function(data, treat, ymax = 100) {
     xlab = NA,
     ylim = c(0, ymax),
     col = global_kicols[1:4],
+    border = "white",
     cex.lab = cexmy,
     names.arg = rep(NA, 4)
   )
@@ -129,36 +134,92 @@ reptreatbar <- function(data, treat, ymax = 100) {
 ```
 
 
-```{r rephospmra, fig.cap = "Repeated HF hospitalizations vs discontinuation of MRA (HFrEF, HFmrEF & HFpEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
+```{r rephospmra, fig.cap = "Repeated HF hospitalizations vs discontinuation of MRA (HFrEF + HFmrEF), n in each group over bars", cache=cacheon, dependson="rephosp"}
 reptreatbar(
   data = rsdata %>% filter(
-    shf_ef_cat %in% c("HFrEF", "HFmrEF", "HFpEF"),
     ddr_mra_prior == "Yes",
     sos_location == "HF in-patient"
   ),
-  treat = "mra", ymax = 55
+  treat = "mra", ymax = 100,
+  postvalue = "No"
 )
 ```
 
-```{r rephospras, fig.cap = "Repeated HF hospitalizations vs discontinuation of RASi (HFrEF & HFmrEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
+```{r rephospras, fig.cap = "Repeated HF hospitalizations vs discontinuation of RASi/ARNi (HFrEF + HFmrEF), n in each group over bars", cache=cacheon, dependson="rephosp"}
 reptreatbar(
   data =
     rsdata %>% filter(
-      shf_ef_cat %in% c("HFrEF", "HFmrEF"),
       ddr_rasi_prior == "Yes",
       sos_location == "HF in-patient"
     ),
-  treat = "rasi", ymax = 35
+  treat = "rasi", ymax = 100,
+  postvalue = "No"
 )
 ```
 
-```{r rephospbbl, fig.cap = "Repeated HF hospitalizations vs discontinuation of Bbl (HFrEF & HFmrEF combined), n in each group over bars", cache=cacheon, dependson="rephosp"}
+```{r rephospbbl, fig.cap = "Repeated HF hospitalizations vs discontinuation of Bbl (HFrEF + HFmrEF), n in each group over bars", cache=cacheon, dependson="rephosp"}
 reptreatbar(
   data = rsdata %>% filter(
-    shf_ef_cat %in% c("HFrEF", "HFmrEF"),
     ddr_bbl_prior == "Yes",
     sos_location == "HF in-patient"
   ),
-  "bbl", ymax = 25
+  "bbl", ymax = 100,
+  postvalue = "No"
+)
+```
+
+```{r rephosploop, fig.cap = "Repeated HF hospitalizations vs discontinuation of Loop diuretic (HFrEF + HFmrEF), n in each group over bars", cache=cacheon, dependson="rephosp"}
+reptreatbar(
+  data = rsdata %>% filter(
+    ddr_loopdiuretic_prior == "Yes",
+    sos_location == "HF in-patient"
+  ),
+  "loopdiuretic", ymax = 100,
+  postvalue = "No"
+)
+```
+
+```{r rephospmraini, fig.cap = "Repeated HF hospitalizations vs initiation of MRA (HFrEF + HFmrEF), n in each group over bars", cache=cacheon, dependson="rephosp"}
+reptreatbar(
+  data = rsdata %>% filter(
+    ddr_mra_prior == "No",
+    sos_location == "HF in-patient"
+  ),
+  treat = "mra", ymax = 100,
+  postvalue = "Yes"
+)
+```
+
+```{r rephosprasini, fig.cap = "Repeated HF hospitalizations vs initiation of RASi/ARNi (HFrEF + HFmrEF), n in each group over bars", cache=cacheon, dependson="rephosp"}
+reptreatbar(
+  data =
+    rsdata %>% filter(
+      ddr_rasi_prior == "No",
+      sos_location == "HF in-patient"
+    ),
+  treat = "rasi", ymax = 100,
+  postvalue = "Yes"
+)
+```
+
+```{r rephospbblini, fig.cap = "Repeated HF hospitalizations vs initiation of Bbl (HFrEF + HFmrEF), n in each group over bars", cache=cacheon, dependson="rephosp"}
+reptreatbar(
+  data = rsdata %>% filter(
+    ddr_bbl_prior == "No",
+    sos_location == "HF in-patient"
+  ),
+  "bbl", ymax = 100,
+  postvalue = "Yes"
+)
+```
+
+```{r rephosploopini, fig.cap = "Repeated HF hospitalizations vs initiation of Loop diuretic (HFrEF + HFmrEF), n in each group over bars", cache=cacheon, dependson="rephosp"}
+reptreatbar(
+  data = rsdata %>% filter(
+    ddr_loopdiuretic_prior == "No",
+    sos_location == "HF in-patient"
+  ),
+  "loopdiuretic", ymax = 100,
+  postvalue = "Yes"
 )
 ```

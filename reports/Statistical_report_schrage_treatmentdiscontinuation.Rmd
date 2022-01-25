@@ -1,5 +1,5 @@
 ---
-title: 'Statistical report: Discontinuation of guideline-recommended HF treatments after a HF hospitalization'
+title: 'Statistical report: Discontinuation/Initiation of guideline-recommended HF treatments after a HF hospitalization'
 author: 'Statistician: Lina Benson'
   
 date: "`r Sys.Date()`"
@@ -88,15 +88,8 @@ All analyses were performed using `r sessionInfo()$R.version$version.string` [@r
 The level of significance is set to 5%, two-sided. No adjustment for multiple 
 comparisons were made and therefore the results should be viewed with some care.
 
-## EF combined
-
-In the analyses of EF combined the EF used for MRA and loopdiuretics is r, mr, pEF and for rasi and bbl r, mrEF. 
-
-## Baseline characteristics
-
-```{r, child = "../src/tab1.Rmd"}
-
-```
+The location (HF in-/out-patients) is according to the National Patient Registry 
+(so not necessarily according to the information recorded in SwedeHF). 
 
 ## Missing data
 
@@ -104,21 +97,27 @@ Missing data was imputed with multiple imputation (n = 10) using mice [@mice].
 Variables included in the model are indicated in 
 Table \ref{tab:tab1mra}. 
 
-## Treatments overall
+## Baseline characteristics
 
-Only patients hospitalized for HF are included (so the controls are dropped from this analysis). 
-However, all patients are presented for the respective treatments, 
-not only those that were on the respective treatment at the time of HFH as in the following analyses. 
-
-```{r, child = "../src/tabontreatall.Rmd"}
+```{r, child = "../src/tab1.Rmd"}
 
 ```
 
+## Treatments overall
+
+Only patients hospitalized for HF are included (the controls are dropped from this analysis). 
+
+```{r, child = "../src/bardesctreat.Rmd"}
+
+```
+
+\clearpage
+
 ## Treatment discontinuation/initiation 
 
-A logistic regression is performed separately for the 3 EF groups and EF combined for patients 
-with the respective medications prior to the hospitalization/visit, with discontinuation 
-(for MRA, RASi, Bbl)/initiation (Loopdiuretics) as the outcome. 
+A logistic regression is performed separately for the 2 EF groups and EF combined for patients 
+with the respective medications prior to the hospitalization/visit (discontinuation analysis), 
+not on the respective medications prior to the hospitalization/visit (initiation analysis) with discontinuation/initiation as the outcome. 
 Adjustment is performed for variables indicated in \ref{tab:tab1all}.  
 
 ```{r, child = "../src/treatdisclogreg.Rmd"}
@@ -130,13 +129,19 @@ Adjustment is performed for variables indicated in \ref{tab:tab1all}.
 ## Repeated hospitalizations
 
 The barplot presents the number HF hospitalizations, defined as main diagnosis in NPR, 
-including the index hospitalization, 
-from index until the respective time point vs discontinuation of the respective treatment. 
+including the index hospitalization, from index until the respective time point vs discontinuation/initiation of the respective treatment. 
 The treatment is defined as 1 dispensed prescription within 6 months after 
-the respective time point. Patients without time point + 6 months follow-up 
-are excluded (as well as patients without prior treatment and patients that are 
-not hospitalized at index (controls)). E.g., when looking 
-at 1 year it is number of HF hospitalizations within 1 year from index vs 
+the respective time point. 
+
+The analyses is performed on patients 
+with the respective medication prior to the hospitalization (discontinuation analysis) and 
+not on the respective medication prior to the hospitalization (initiation analysis). 
+Only patients hospitalized for HF are included (the controls are dropped from this analysis). 
+Patients without time point + 6 months follow-up 
+are excluded. 
+
+E.g., when looking 
+at discontinuation at 1 year it is number of HF hospitalizations within 1 year from index vs 
 treatment within 1-1.5 years after index and excluding patients without 1.5 years 
 follow-up and without the treatment prior to index. 
 
@@ -148,9 +153,11 @@ follow-up and without the treatment prior to index.
 
 ## Predictors of discontinuation/initiation 
 
-A logistic regression is performed separately for the 3 EF groups and EF combined for patients 
-with the respective medications prior to the hospitalization, with discontinuation/initiation as the outcome. 
-Only patients hospitalized for HF are included (so the controls are dropped from this analysis). 
+A logistic regression is performed separately for the 2 EF groups and EF combined for patients 
+with the respective medication prior to the hospitalization (discontinuation analysis) and 
+not on the respective medication prior to the hospitalization (initiation analysis) 
+with discontinuation/initiation as the outcome. 
+Only patients hospitalized for HF are included (the controls are dropped from this analysis). 
 
 ```{r, child = "../src/predtreatdisc.Rmd"}
 
@@ -162,17 +169,17 @@ Outliers were investigated with Cook's distance and multicollinearity
 with the variance inflation factor.
 => No action deemed necessary. 
 
-## Outcomes after discontinuation
+## Outcomes after discontinuation/initiation 
 
 Data were censored at 2019-12-31, death (where applicable), emigration or 3 years. 
 
 Cox proportional hazards regressions were 
-used to model the time to first event analysis and negative 
-binomial regression including the log of time as an offset in the model for 
-the repeated events. The models were partly crude and partly adjusted for variables 
+used to model the time to first event analysis. The models were partly crude and partly adjusted for variables 
 indicated in Table \ref{tab:tab1all} and are performed separately in the respective EF 
-groups and EF combined and on those with the respective prior treatments. 
-Only patients hospitalized for HF are included (so the controls are dropped from this analysis). 
+groups and EF combined. The analyses are performed on patients on the respective 
+medication prior to the hospitalization (discontinuation analysis) and
+not on the respective medication prior to the hospitalization (initiation analysis). 
+Only patients hospitalized for HF are included (the controls are dropped from this analysis). 
 
 The median (min-max) follow-up among the cases is `r rsdata %>% 
 filter(sos_location == "HF in-patient") %>%

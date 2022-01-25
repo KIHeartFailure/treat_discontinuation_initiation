@@ -10,13 +10,17 @@ flow <- c("Number of posts (cases) in SHFDB3", nrow(rsdata))
 rsdata <- rsdata %>%
   filter(
     shf_indexdtm >= ymd("2009-01-01"),
-    shf_indexdtm <= ymd("2016-12-31")
+    shf_indexdtm <= ymd("2018-12-31")
   )
-flow <- rbind(flow, c("Indexdate 2009-01-01 -- 2016-12-31", nrow(rsdata)))
+flow <- rbind(flow, c("Indexdate 2009-01-01 -- 2018-12-31", nrow(rsdata)))
 
 rsdata <- rsdata %>%
   filter(!is.na(shf_ef))
 flow <- rbind(flow, c("No missing EF", nrow(rsdata)))
+
+rsdata <- rsdata %>%
+  filter(shf_ef != ">=50")
+flow <- rbind(flow, c("No HFpEF", nrow(rsdata)))
 
 rsdata <- rsdata %>%
   filter(!is.na(shf_durationhf))

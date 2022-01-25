@@ -47,6 +47,9 @@ tabvars <- c(
 
   # treatments
   "ddr_rasi_prior",
+  "ddr_acei_prior",
+  "ddr_arb_prior",
+  "ddr_arni_prior",
   "ddr_bbl_prior",
   "ddr_mra_prior",
   "ddr_loopdiuretic_prior",
