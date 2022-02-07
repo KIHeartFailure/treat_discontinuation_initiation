@@ -1,0 +1,48 @@
+```{r overallfunc, cache=cacheon}
+
+funcinc <- function(time, event, eventname) {
+  out <- data.frame(matrix(NA, ncol = 2, nrow = 1))
+
+  colnames(out) <- c("Outcome", "No event, sum py, incidence per 1000 py")
+
+  out[1, 1] <- eventname
+
+  # incidence
+  ev <- rsdata %>%
+    filter(sos_location == "HF in-patient") %>%
+    summarise(
+      ev = sum(!!sym(event) == "Yes"),
+      .groups = "rowwise"
+    )
+
+  s <- rsdata %>%
+    filter(sos_location == "HF in-patient") %>%
+    summarise(
+      s = sum(!!sym(time) / 365.25),
+      .groups = "rowwise"
+    )
+  r <- pois.exact(x = ev$ev, pt = s$s / 1000)
+
+  out[1, 2] <- paste0(
+    ev$ev, ", ",
+    fn(s$s, dig = 0), ", ",
+    fn(r$rate, dig = 0), " (",
+    fn(r$lower, dig = 0), "-",
+    fn(r$upper, dig = 0), ")"
+  )
+
+  return(out)
+}
+```
+
+```{r overallout, cache=cacheon, dependson="overallfunc"}
+
+out <- funcinc(time = "sos_outtime_death3y", event = "sos_out_death3y", "All-cause mortality within 3 years")
+out <- bind_rows(out, funcinc(time = "sos_outtime_death3y", event = "sos_out_deathcv3y", "CV mortality within 3 years"))
+
+default_kable(out,
+  scale_down = F,
+  caption = paste0("Incidence In-patients"),
+  escape = TRUE
+)
+```

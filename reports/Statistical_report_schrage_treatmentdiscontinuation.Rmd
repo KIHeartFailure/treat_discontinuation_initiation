@@ -183,14 +183,18 @@ Only patients hospitalized for HF are included (the controls are dropped from th
 
 The median (min-max) follow-up among the cases is `r rsdata %>% 
 filter(sos_location == "HF in-patient") %>%
-summarise(med = fn(median(sos_outtime_death3y / 365), dig = 1),
-                                             min = fn(min(sos_outtime_death3y / 365), dig = 1),
-                                             max = fn(max(sos_outtime_death3y / 365), dig = 1)) %>%
+summarise(med = fn(median(sos_outtime_death3y / 365.25), dig = 1),
+                                             min = fn(min(sos_outtime_death3y / 365.25), dig = 1),
+                                             max = fn(max(sos_outtime_death3y / 365.25), dig = 1)) %>%
                                    mutate(out = paste0(med, " (", min, "-", max, ")")) %>%
                                    pull(out)` years for a total of 
                                    `r rsdata %>% 
-filter(sos_location == "HF in-patient") %>% summarise(sumpy = fn(sum(sos_outtime_death3y) / 365, dig = 0)) %>%
+filter(sos_location == "HF in-patient") %>% summarise(sumpy = fn(sum(sos_outtime_death3y) / 365.25, dig = 0)) %>%
                                    pull(sumpy)` patient-years of follow-up.
+
+```{r, child = "../src/overallout.Rmd"}
+
+```
 
 
 ```{r, child = "../src/treatdisccoxreg.Rmd"}
