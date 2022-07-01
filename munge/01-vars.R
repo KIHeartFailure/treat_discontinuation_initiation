@@ -134,6 +134,7 @@ modvars <- c(
   "shf_map_cat",
   "shf_heartrate_cat",
   "shf_bmi_cat",
+  "shf_potassium_cat",
   "shf_gfrckdepi_cat",
   "shf_ntprobnp_cat",
   "shf_sos_com_ihd",

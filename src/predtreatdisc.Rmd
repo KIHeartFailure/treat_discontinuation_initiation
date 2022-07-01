@@ -24,6 +24,12 @@ funcpred <- function(efcat, medpre, medpost, valmedpre = "Yes", valmedpost = "No
     )
   )
 
+  checkinf <- any(str_detect(out %>% pull(!!sym(name)), "Inf"))
+  
+  if (checkinf) {
+    out[, 2] <- "-"
+  }
+    
   return(out)
 }
 ```

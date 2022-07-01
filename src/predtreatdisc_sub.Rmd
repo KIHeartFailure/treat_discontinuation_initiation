@@ -1,0 +1,142 @@
+```{r predtreatdiscsub, cache=cacheon}
+
+funcpred <- function(gfrcat, medpre, medpost, valmedpre, valmedpost, name = gfrcat) {
+  modvarstmp <- modvars
+  modvarstmp <- modvarstmp[modvarstmp != "shf_gfrckdepi_cat"]
+
+  amod <- hf_glm_mids(formula(paste0(
+    medpost, "=='", valmedpost, "' ~ ", paste(modvarstmp, collapse = " + ")
+  )),
+  data = imp,
+  subset = expr(sos_location == "HF in-patient" & shf_gfrckdepi_cat2 %in% gfrcat & !is.na(shf_gfrckdepi_cat2) & !!sym(medpre) == valmedpre)
+  )
+  asmod <- summary(pool(amod))
+
+  nval <- length(asmod$term)
+  terms <- as.character(asmod$term[2:nval])
+  units <- rep(1, nval - 1)
+  units[terms %in% c("shf_age", "shf_map", "shf_heartrate")] <- 10
+  terms[terms %in% c("shf_age", "shf_map", "shf_heartrate")] <- paste0(terms[terms %in% c("shf_age", "shf_map", "shf_heartrate")], "*")
+  out <- tibble(
+    Variable = terms,
+    !!sym(name) := paste0(
+      fn(exp(asmod$estimate[2:nval])^units, dig = 1),
+      " (", fn(exp(asmod$estimate[2:nval] - global_z05 * asmod$std.error[2:nval])^units, dig = 1),
+      "-", fn(exp(asmod$estimate[2:nval] + global_z05 * asmod$std.error[2:nval])^units, dig = 1), "), ",
+      fn(asmod$p.value[2:nval], dig = 3, p = TRUE)
+    )
+  )
+  
+  checkinf <- any(str_detect(out %>% pull(!!sym(name)), "Inf"))
+  
+  if (checkinf) {
+    out[, 2] <- "-"
+  }
+
+  return(out)
+}
+
+funcpred2 <- function(medpre2, medpost2, valmedpre2 = "Yes", valmedpost2 = "No", tabname, naest = 0) {
+  out1 <- funcpred(gfrcat = ">=60", medpre = medpre2[1], medpost = medpost2, valmedpre = valmedpre2, valmedpost = valmedpost2)
+  out2 <- funcpred(gfrcat = ">=60", medpre = medpre2[2], medpost = medpost2, valmedpre = valmedpre2, valmedpost = valmedpost2, name = ">=60 (2 dd/8mo)")
+
+  out3 <- funcpred(gfrcat = "<60", medpre = medpre2[1], medpost = medpost2, valmedpre = valmedpre2, valmedpost = valmedpost2)
+  if (naest == 4) {
+    out4 <- tibble(Variable = out3$Variable, 
+                   !!sym("<60 (2 dd/8mo)") := "-")
+  } else{
+    out4 <- funcpred(gfrcat = "<60", medpre = medpre2[2], medpost = medpost2, valmedpre = valmedpre2, valmedpost = valmedpost2, name = "<60 (2 dd/8mo)")
+  } 
+  
+  all <- Reduce(
+    function(...) {
+      full_join(...,
+        by = "Variable"
+      )
+    },
+    list(out1, out2, out3, out4)
+  )
+
+  write.xlsx(all, paste0("./output/tabs/", tabname, "by eGFR_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
+
+  default_kable(all,
+    caption = paste(tabname, " by eGFR"),
+    escape = TRUE,
+    scale_down = T
+  ) %>%
+    add_header_above(c(" " = 1, "Adjusted OR (95% CI), p-value" = 4))
+}
+```
+
+```{r predtreatdiscmrasub, cache=cacheon, dependson=c("predtreatdiscsub")}
+
+funcpred2(medpre2 = c("ddr_mra_prior", "ddr_mra_prior8m"), medpost2 = "ddr_mra_post", 
+          tabname = "Predictors of treatment discontinuation MRA")
+```
+
+\clearpage
+
+```{r predtreatdiscrasisub, cache=cacheon, dependson="predtreatdiscsub"}
+
+funcpred2(medpre2 = c("ddr_rasi_prior", "ddr_rasi_prior8m"), medpost2 = "ddr_rasi_post", 
+          tabname = "Predictors of treatment discontinuation RASi/ARNi")
+```
+
+\clearpage
+
+```{r predtreatdiscbblsub, cache=cacheon, dependson="predtreatdiscsub"}
+
+funcpred2(medpre2 = c("ddr_bbl_prior", "ddr_bbl_prior8m"), medpost2 = "ddr_bbl_post", 
+          tabname = "Predictors of treatment discontinuation Bbl")
+```
+
+\clearpage
+
+```{r predtreatdiscloopdsub, cache=cacheon, dependson="predtreatdiscsub"}
+
+funcpred2(
+  medpre2 = c("ddr_loopdiuretic_prior", "ddr_loopdiuretic_prior8m"),
+  medpost2 = "ddr_loopdiuretic_post", tabname = "Predictors of treatment discontinuation Loop diuretics", 
+  naest = 4
+)
+```
+
+\clearpage
+
+```{r predtreatinimrasub, cache=cacheon, dependson="predtreatdiscsub"}
+
+funcpred2(
+  medpre2 = c("ddr_mra_prior", "ddr_mra_prior8m"), medpost2 = "ddr_mra_post",
+  valmedpre2 = "No", valmedpost2 = "Yes", tabname = "Predictors of treatment initiation MRA"
+)
+```
+
+\clearpage
+
+```{r predtreatinirasisub, cache=cacheon, dependson="predtreatdiscsub"}
+
+funcpred2(
+  medpre2 = c("ddr_rasi_prior", "ddr_rasi_prior8m"), medpost2 = "ddr_rasi_post",
+  valmedpre2 = "No", valmedpost2 = "Yes", tabname = "Predictors of treatment initiation RASi/ARNi"
+)
+```
+
+\clearpage
+
+```{r predtreatinicbblsub, cache=cacheon, dependson="predtreatdiscsub"}
+
+funcpred2(
+  medpre2 = c("ddr_bbl_prior", "ddr_bbl_prior8m"), medpost2 = "ddr_bbl_post",
+  valmedpre2 = "No", valmedpost2 = "Yes", tabname = "Predictors of treatment initiation Bbl"
+)
+```
+
+\clearpage
+
+```{r predtreatiniloopdsub, cache=cacheon, dependson="predtreatdiscsub"}
+
+funcpred2(
+  medpre2 = c("ddr_loopdiuretic_prior", "ddr_loopdiuretic_prior8m"), medpost2 = "ddr_loopdiuretic_post",
+  valmedpre2 = "No", valmedpost2 = "Yes", tabname = "Predictors of treatment initiation Loop diuretics"
+)
+```

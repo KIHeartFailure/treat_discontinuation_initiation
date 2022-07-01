@@ -243,9 +243,9 @@ funclogregforest <- function(data, discini, axismy) {
     mutate(
       order = n():1,
       cols = case_when(
-        hf == "HFrEF" ~ global_kicols[2],
-        hf == "HFmrEF" ~ global_kicols[3],
-        hf == "All (HFrEF + HFmrEF)" ~ global_kicols[1]
+        hf == "HFrEF" ~ global_cols[6],
+        hf == "HFmrEF" ~ global_cols[4],
+        hf == "All (HFrEF + HFmrEF)" ~ global_cols[2]
       )
     )
 
@@ -349,7 +349,7 @@ default_kable(discdata$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, "HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```
 
 ```{r treatdiscforest, fig.cap = "Treatment discontinuation", cache=cacheon, dependson=c("treatdisclogfuncs", "treatdisc", "treatdisclogforestfunc"), fig.width=10, fig.height=7}

@@ -1,6 +1,6 @@
-```{r treatdisccoxreg, cache=cacheon}
+```{r treatdisccoxregsub, cache=cacheon}
 
-funccoxreg <- function(time, event, efcat, medpre, medpost, medname, discini2) {
+funccoxreg <- function(time, event, gfrcat, medpre, medpost, medname, discini2) {
   out <- data.frame(matrix(NA, ncol = 10, nrow = 3))
 
   if (discini2 == "discontinuation") {
@@ -21,7 +21,7 @@ funccoxreg <- function(time, event, efcat, medpre, medpost, medname, discini2) {
   # incidence
   out[1, 2] <- "No event, sum py, incidence per 1000 py"
   ev <- data %>%
-    filter(sos_location == "HF in-patient" & shf_ef_cat %in% efcat & !!sym(medpre) == valmedpre) %>%
+    filter(sos_location == "HF in-patient" & shf_gfrckdepi_cat2 %in% gfrcat & !!sym(medpre) == valmedpre) %>%
     group_by(!!sym(medpost)) %>%
     summarise(
       ev = sum(!!sym(event) == "Yes"),
@@ -29,7 +29,7 @@ funccoxreg <- function(time, event, efcat, medpre, medpost, medname, discini2) {
     )
 
   s <- data %>%
-    filter(sos_location == "HF in-patient" & shf_ef_cat %in% efcat & !!sym(medpre) == valmedpre) %>%
+    filter(sos_location == "HF in-patient" & shf_gfrckdepi_cat2 %in% gfrcat & !!sym(medpre) == valmedpre) %>%
     group_by(!!sym(medpost)) %>%
     summarise(
       s = sum(!!sym(time) / 365.25),
@@ -58,7 +58,7 @@ funccoxreg <- function(time, event, efcat, medpre, medpost, medname, discini2) {
   # crude cox reg
   out[2, 2] <- "Crude HR (95% CI), p"
   mod <- coxph(formula(paste0("Surv(", time, ", ", event, " == 'Yes') ~ ", medpost)),
-    data = data %>% filter(sos_location == "HF in-patient" & shf_ef_cat %in% efcat & !!sym(medpre) == valmedpre)
+    data = data %>% filter(sos_location == "HF in-patient" & shf_gfrckdepi_cat2 %in% gfrcat & !!sym(medpre) == valmedpre)
   )
   smod <- summary(mod)
 
@@ -70,13 +70,17 @@ funccoxreg <- function(time, event, efcat, medpre, medpost, medname, discini2) {
   ))
 
   # adj cox reg
+
+  modvarstmp <- modvars
+  modvarstmp <- modvarstmp[modvarstmp != "shf_gfrckdepi_cat"]
+
   out[3, 2] <- "Adjusted HR (95% CI), p"
   amod <- hf_coxph_mids(formula(paste0(
     "Surv(", time, ",", event, " == 'Yes') ~ relevel(",
-    medpost, ", ref = '", valmedpre, "') + ", paste(modvars, collapse = " + ")
+    medpost, ", ref = '", valmedpre, "') + ", paste(modvarstmp, collapse = " + ")
   )),
   data = imp,
-  subset = expr(sos_location == "HF in-patient" & shf_ef_cat %in% efcat & !!sym(medpre) == valmedpre)
+  subset = expr(sos_location == "HF in-patient" & shf_gfrckdepi_cat2 %in% gfrcat & !!sym(medpre) == valmedpre)
   )
   asmod <- summary(pool(amod))
 
@@ -98,167 +102,115 @@ funccoxreg <- function(time, event, efcat, medpre, medpost, medname, discini2) {
 
 funccoxreg2 <- function(time2, event2, discini) {
   # HFrEF
-  outref <- funccoxreg(
-    time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_mra_prior",
+  out1 <- funccoxreg(
+    time = time2, event = event2, gfrcat = ">=60", medpre = "ddr_mra_prior",
     medpost = "ddr_mra_post", medname = "MRA", discini2 = discini
   )
-  outref <- rbind(outref, funccoxreg(
-    time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_mra_prior8m",
+  out1 <- rbind(out1, funccoxreg(
+    time = time2, event = event2, gfrcat = ">=60", medpre = "ddr_mra_prior8m",
     medpost = "ddr_mra_post", medname = "MRA 2 dd/8 mo", discini2 = discini
   ))
 
-  outref <- rbind(outref, funccoxreg(
-    time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_rasi_prior",
+  out1 <- rbind(out1, funccoxreg(
+    time = time2, event = event2, gfrcat = ">=60", medpre = "ddr_rasi_prior",
     medpost = "ddr_rasi_post", medname = "RASi/ARNi", discini2 = discini
   ))
-  outref <- rbind(outref, funccoxreg(
-    time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_rasi_prior8m",
+  out1 <- rbind(out1, funccoxreg(
+    time = time2, event = event2, gfrcat = ">=60", medpre = "ddr_rasi_prior8m",
     medpost = "ddr_rasi_post", medname = "RASi/ARNi 2 dd/8 mo", discini2 = discini
   ))
 
-  outref <- rbind(outref, funccoxreg(
-    time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_bbl_prior",
+  out1 <- rbind(out1, funccoxreg(
+    time = time2, event = event2, gfrcat = ">=60", medpre = "ddr_bbl_prior",
     medpost = "ddr_bbl_post", medname = "Betablocker", discini2 = discini
   ))
-  outref <- rbind(outref, funccoxreg(
-    time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_bbl_prior8m",
+  out1 <- rbind(out1, funccoxreg(
+    time = time2, event = event2, gfrcat = ">=60", medpre = "ddr_bbl_prior8m",
     medpost = "ddr_bbl_post", medname = "Betablocker 2 dd/8 mo", discini2 = discini
   ))
 
-  outref <- rbind(outref, funccoxreg(
+  out1 <- rbind(out1, funccoxreg(
     time = time2, event = event2,
-    efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+    gfrcat = ">=60", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
     medname = "Loop diuretic", discini2 = discini
   ))
-  outref <- rbind(outref, funccoxreg(
+  out1 <- rbind(out1, funccoxreg(
     time = time2, event = event2,
-    efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+    gfrcat = ">=60", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
     medname = "Loop diuretic 2 dd/8 mo", discini2 = discini
   ))
 
   # HFmrEF
-  outmref <- funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_mra_prior",
+  out2 <- funccoxreg(
+    time = time2, event = event2, gfrcat = "<60", medpre = "ddr_mra_prior",
     medpost = "ddr_mra_post", medname = "MRA", discini2 = discini
   )
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_mra_prior8m",
+  out2 <- rbind(out2, funccoxreg(
+    time = time2, event = event2, gfrcat = "<60", medpre = "ddr_mra_prior8m",
     medpost = "ddr_mra_post", medname = "MRA 2 dd/8 mo", discini2 = discini
   ))
 
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_rasi_prior",
+  out2 <- rbind(out2, funccoxreg(
+    time = time2, event = event2, gfrcat = "<60", medpre = "ddr_rasi_prior",
     medpost = "ddr_rasi_post", medname = "RASi/ARNi", discini2 = discini
   ))
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_rasi_prior8m",
+  out2 <- rbind(out2, funccoxreg(
+    time = time2, event = event2, gfrcat = "<60", medpre = "ddr_rasi_prior8m",
     medpost = "ddr_rasi_post", medname = "RASi/ARNi 2 dd/8 mo", discini2 = discini
   ))
 
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_bbl_prior",
+  out2 <- rbind(out2, funccoxreg(
+    time = time2, event = event2, gfrcat = "<60", medpre = "ddr_bbl_prior",
     medpost = "ddr_bbl_post", medname = "Betablocker", discini2 = discini
   ))
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_bbl_prior8m",
+  out2 <- rbind(out2, funccoxreg(
+    time = time2, event = event2, gfrcat = "<60", medpre = "ddr_bbl_prior8m",
     medpost = "ddr_bbl_post", medname = "Betablocker 2 dd/8 mo", discini2 = discini
   ))
 
-  outmref <- rbind(outmref, funccoxreg(
+  out2 <- rbind(out2, funccoxreg(
     time = time2, event = event2,
-    efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+    gfrcat = "<60", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
     medname = "Loop diuretic", discini2 = discini
   ))
-  outmref <- rbind(outmref, funccoxreg(
+  out2 <- rbind(out2, funccoxreg(
     time = time2, event = event2,
-    efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-    medname = "Loop diuretic 2 dd/8 mo", discini2 = discini
-  ))
-
-  # HF all
-  outall <- funccoxreg(
-    time = time2, event = event2, efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_mra_prior",
-    medpost = "ddr_mra_post", medname = "MRA", discini2 = discini
-  )
-  outall <- rbind(outall, funccoxreg(
-    time = time2, event = event2, efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_mra_prior8m",
-    medpost = "ddr_mra_post", medname = "MRA 2 dd/8 mo", discini2 = discini
-  ))
-
-  outall <- rbind(outall, funccoxreg(
-    time = time2, event = event2, efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_rasi_prior",
-    medpost = "ddr_rasi_post", medname = "RASi/ARNi", discini2 = discini
-  ))
-  outall <- rbind(outall, funccoxreg(
-    time = time2, event = event2, efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_rasi_prior8m",
-    medpost = "ddr_rasi_post", medname = "RASi/ARNi 2 dd/8 mo", discini2 = discini
-  ))
-
-  outall <- rbind(outall, funccoxreg(
-    time = time2, event = event2, efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_bbl_prior",
-    medpost = "ddr_bbl_post", medname = "Betablocker", discini2 = discini
-  ))
-  outall <- rbind(outall, funccoxreg(
-    time = time2, event = event2, efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_bbl_prior8m",
-    medpost = "ddr_bbl_post", medname = "Betablocker 2 dd/8 mo", discini2 = discini
-  ))
-
-  outall <- rbind(outall, funccoxreg(
-    time = time2, event = event2,
-    efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-    medname = "Loop diuretic", discini2 = discini
-  ))
-  outall <- rbind(outall, funccoxreg(
-    time = time2, event = event2,
-    efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+    gfrcat = "<60", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
     medname = "Loop diuretic 2 dd/8 mo", discini2 = discini
   ))
 
   outprint <- cbind(
-    outref[, 1:4],
-    outmref[, 3:4],
-    outall[, 3:4]
+    out1[, 1:4],
+    out2[, 3:4]
   )
 
-  outforestref <-
-    outref %>%
+  outforest1 <-
+    out1 %>%
     mutate(cons = str_detect(`Prior medication`, "2 dd/8 mo")) %>%
     filter(Model != "Crude HR (95% CI), p" &
       !cons) %>%
     mutate(
       incforest = if_else(Model == "Adjusted HR (95% CI), p", lag(incforest), incforest),
-      hf = "HFrEF"
+      hf = ">=60"
     ) %>%
     filter(Model %in% c("Adjusted HR (95% CI), p")) %>%
     select(`Prior medication`, hf, incforest, loghr:pval)
 
-  outforestmref <-
-    outmref %>%
+  outforest2 <-
+    out2 %>%
     mutate(cons = str_detect(`Prior medication`, "2 dd/8 mo")) %>%
     filter(Model != "Crude HR (95% CI), p" &
       !cons) %>%
     mutate(
       incforest = if_else(Model == "Adjusted HR (95% CI), p", lag(incforest), incforest),
-      hf = "HFmrEF"
+      hf = "<60"
     ) %>%
     filter(Model %in% c("Adjusted HR (95% CI), p")) %>%
     select(`Prior medication`, hf, incforest, loghr:pval)
 
-  outforestall <-
-    outall %>%
-    mutate(cons = str_detect(`Prior medication`, "2 dd/8 mo")) %>%
-    filter(Model != "Crude HR (95% CI), p" &
-      !cons) %>%
-    mutate(
-      incforest = if_else(Model == "Adjusted HR (95% CI), p", lag(incforest), incforest),
-      hf = "All (HFrEF + HFmrEF)"
-    ) %>%
-    filter(Model %in% c("Adjusted HR (95% CI), p")) %>%
-    select(`Prior medication`, hf, incforest, loghr:pval)
+  outforest <- bind_rows(outforest1, outforest2)
 
-  outforest <- bind_rows(outforestref, outforestmref, outforestall)
-
-  write.xlsx(outprint, paste0("./output/tabs/coxreg_", event2, "_", discini, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+  write.xlsx(outprint, paste0("./output/tabs/coxreg_", event2, "_", discini, "_eGFR_", Sys.Date(), ".xlsx"), rowNames = FALSE)
 
   ## fix in order to use escape = TRUE
   colnames(outprint) <- sanitize_text(colnames(outprint))
@@ -267,7 +219,7 @@ funccoxreg2 <- function(time2, event2, discini) {
 }
 ```
 
-```{r treatdisccoxregforest, cache=cacheon, dependson=c("treatdisclogreg", "treatdisclogregef", "treatdisclogregefcomb"), fig.width=10, fig.height=7}
+```{r treatdisccoxregforestsub, cache=cacheon, dependson=c("treatdisccoxregsub"), fig.width=10, fig.height=7}
 
 forestfunc <- function(data, discini, axismy) {
   foresttmp <- tibble(
@@ -293,9 +245,8 @@ forestfunc <- function(data, discini, axismy) {
         `Prior medication` == "Loop diuretic" ~ 4,
       ),
       hfno = case_when(
-        hf == "HFrEF" ~ 2,
-        hf == "HFmrEF" ~ 3,
-        hf == "All (HFrEF + HFmrEF)" ~ 4,
+        hf == ">=60" ~ 2,
+        hf == "<60" ~ 3,
         TRUE ~ 1
       )
     ) %>%
@@ -305,10 +256,12 @@ forestfunc <- function(data, discini, axismy) {
     mutate(
       order = n():1,
       cols = case_when(
-        hf == "HFrEF" ~ global_cols[6],
-        hf == "HFmrEF" ~ global_cols[4],
-        hf == "All (HFrEF + HFmrEF)" ~ global_cols[2]
-      )
+        hf == ">=60" ~ global_cols[4],
+        hf == "<60" ~ global_cols[2]
+      ), 
+      hf = case_when(hf == ">=60" ~ "eGFR \u226560", 
+                     hf == "<60" ~ "eGFR <60", 
+                     TRUE ~ hf)
     )
 
   cextext <- 1.1
@@ -408,53 +361,53 @@ forestfunc <- function(data, discini, axismy) {
 }
 ```
 
-```{r treatdisccoxregdeath, cache=cacheon, dependson="treatdisccoxreg"}
+```{r treatdisccoxregdeathsub, cache=cacheon, dependson="treatdisccoxregsub"}
 
 discdatadeath <- funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_death3y", discini = "discontinuation")
 
 default_kable(discdatadeath$outprint,
-  caption = paste0("Treatment discontinuation - All-cause mortality within 3 years"),
+  caption = paste0("Treatment discontinuation - All-cause mortality within 3 years by eGFR"),
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatdisccoxregdeathforest, fig.cap = "Treatment discontinuation - All-cause mortality", cache=cacheon, dependson=c("treatdisccoxreg", "treatdisccoxregforest", "treatdisccoxregdeath"), fig.width=10, fig.height=7}
+```{r treatdisccoxregdeathforestsub, fig.cap = "Treatment discontinuation - All-cause mortality", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatdisccoxregdeathsub"), fig.width=10, fig.height=7}
 
 forestfunc(data = discdatadeath$outforest, discini = "discontinuation", axismy = c(0.5, 1, 1.5, 2))
 ```
 
-```{r treatdisccoxregdeathcv, cache=cacheon, dependson="treatdisccoxreg"}
+```{r treatdisccoxregdeathcvsub, cache=cacheon, dependson="treatdisccoxregsub"}
 
 discdatadeathcv <- funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_deathcv3y", discini = "discontinuation")
 
 default_kable(discdatadeathcv$outprint,
-  caption = "Treatment discontinuation - CV mortality within 3 years",
+  caption = "Treatment discontinuation - CV mortality within 3 years by eGFR",
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatdisccoxregdeathcvforest, , fig.cap = "Treatment discontinuation - CV mortality", cache=cacheon, dependson=c("treatdisccoxreg", "treatdisccoxregforest", "treatdisccoxregdeathcv"), fig.width=10, fig.height=7}
+```{r treatdisccoxregdeathcvforestsub, , fig.cap = "Treatment discontinuation - CV mortality", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatdisccoxregdeathcvsub"), fig.width=10, fig.height=7}
 
 forestfunc(data = discdatadeathcv$outforest, discini = "discontinuation", axismy = c(0.4, 0.6, 1, 1.6, 2.2))
 ```
 
-```{r treatdisccoxreghosphf, cache=cacheon, dependson="treatdisccoxreg"}
+```{r treatdisccoxreghosphfsub, cache=cacheon, dependson="treatdisccoxregsub"}
 
 discdatahosphf <- funccoxreg2(time2 = "sos_outtime_hosphf3y", event2 = "sos_out_hosphf3y", discini = "discontinuation")
 
 default_kable(discdatahosphf$outprint,
-  caption = "Treatment discontinuation - First HF hospitalization within 3 years",
+  caption = "Treatment discontinuation - First HF hospitalization within 3 years by eGFR",
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatdisccoxregdeathcvhosphfp, cache=cacheon, dependson="treatdisccoxreg"}
+```{r treatdisccoxregdeathcvhosphfpsub, cache=cacheon, dependson="treatdisccoxregsub"}
 
 discdatadeathcvhosphf <- funccoxreg2(
   time2 = "sos_outtime_hosphf3y", event2 = "sos_out_deathcvhosphf3y",
@@ -462,60 +415,60 @@ discdatadeathcvhosphf <- funccoxreg2(
 )
 
 default_kable(discdatadeathcvhosphf$outprint,
-  caption = "Treatment discontinuation - CV mortality/first HF hospitalization within 3 years",
+  caption = "Treatment discontinuation - CV mortality/first HF hospitalization within 3 years by eGFR",
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatinicoxregdeath, cache=cacheon, dependson="treatdisccoxreg"}
+```{r treatinicoxregdeathsub, cache=cacheon, dependson="treatdisccoxregsub"}
 
 inidatadeath <- funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_death3y", discini = "initiation")
 
 default_kable(inidatadeath$outprint,
-  caption = paste0("Treatment initiation - All-cause mortality within 3 years"),
+  caption = paste0("Treatment initiation - All-cause mortality within 3 years by eGFR"),
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatinicoxregdeathforest, fig.cap = "Treatment initiation - All-cause mortality", cache=cacheon, dependson=c("treatdisccoxreg", "treatdisccoxregforest", "treatinicoxregdeath"), fig.width=10, fig.height=7}
+```{r treatinicoxregdeathforestsub, fig.cap = "Treatment initiation - All-cause mortality", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatinicoxregdeathsub"), fig.width=10, fig.height=7}
 
-forestfunc(data = inidatadeath$outforest, discini = "initiation", axismy = c(0.4, 0.6, 1, 1.6, 2.2))
+forestfunc(data = inidatadeath$outforest, discini = "initiation", axismy = c(0.4, 0.6, 1, 1.6, 2.8))
 ```
 
-```{r treatinicoxregdeathcv, cache=cacheon, dependson="treatdisccoxreg"}
+```{r treatinicoxregdeathcvsub, cache=cacheon, dependson="treatdisccoxregsub"}
 
 inidatadeathcv <- funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_deathcv3y", discini = "initiation")
 
 default_kable(inidatadeathcv$outprint,
-  caption = "Treatment initiation - CV mortality within 3 years",
+  caption = "Treatment initiation - CV mortality within 3 years by eGFR",
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatinicoxregdeathcvforest, , fig.cap = "Treatment initiation - CV mortality", cache=cacheon, dependson=c("treatdisccoxreg", "treatdisccoxregforest", "treatinicoxregdeathcv"), fig.width=10, fig.height=7}
+```{r treatinicoxregdeathcvforestsub, fig.cap = "Treatment initiation - CV mortality", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatinicoxregdeathcvsub"), fig.width=10, fig.height=7}
 
-forestfunc(data = inidatadeathcv$outforest, discini = "initiation", axismy = c(0.4, 0.6, 1, 2, 3))
+forestfunc(data = inidatadeathcv$outforest, discini = "initiation", axismy = c(0.4, 0.6, 1, 2, 4, 6))
 ```
 
-```{r treatinicoxreghosphf, cache=cacheon, dependson="treatdisccoxreg"}
+```{r treatinicoxreghosphfsub, cache=cacheon, dependson="treatdisccoxregsub"}
 
 inidatahosphf <- funccoxreg2(time2 = "sos_outtime_hosphf3y", event2 = "sos_out_hosphf3y", discini = "initiation")
 
 default_kable(inidatahosphf$outprint,
-  caption = "Treatment initiation - First HF hospitalization within 3 years",
+  caption = "Treatment initiation - First HF hospitalization within 3 years by eGFR",
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatinicoxregdeathcvhosphfp, cache=cacheon, dependson="treatdisccoxreg"}
+```{r treatinicoxregdeathcvhosphfpsub, cache=cacheon, dependson="treatdisccoxregsub"}
 
 inidatadeathcvhosphf <- funccoxreg2(
   time2 = "sos_outtime_hosphf3y", event2 = "sos_out_deathcvhosphf3y",
@@ -523,9 +476,9 @@ inidatadeathcvhosphf <- funccoxreg2(
 )
 
 default_kable(inidatadeathcvhosphf$outprint,
-  caption = "Treatment initiation - CV mortality/first HF hospitalization within 3 years",
+  caption = "Treatment initiation - CV mortality/first HF hospitalization within 3 years by eGFR",
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```

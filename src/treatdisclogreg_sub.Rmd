@@ -1,0 +1,204 @@
+```{r treatdisclogfuncssub, cache=cacheon}
+
+funclogreg <- function(efcat, medpre, medpost, medname, discini, subvar, subval, adj = TRUE) {
+  out <- data.frame(matrix(NA, ncol = 9, nrow = 3))
+  colnames(out) <- c("priormed", "model", levels(rsdata$sos_location), "logor", "lci", "uci", "orci", "pval")
+
+  if (discini == "discontinuation") {
+    valmedpre <- "Yes"
+    valmedpost <- "No"
+  }
+  if (discini == "initiation") {
+    valmedpre <- "No"
+    valmedpost <- "Yes"
+  }
+
+  out[1:3, 1] <- rep(medname, 3)
+
+  out[1:3, 2] <- c("n (%)", "Crude OR (95% CI), p", "Adjusted OR (95% CI), p")
+
+  data <- rsdata %>%
+    filter(!!sym(subvar) == subval & !is.na(!!sym(subvar)))
+
+  # desk stat
+  ds <- data %>%
+    filter(!!sym(medpre) == valmedpre) %>%
+    group_by(sos_location) %>%
+    count(!!sym(medpost)) %>%
+    mutate(
+      p = fn(n / sum(n) * 100, 1),
+      np = paste0(n, " (", p, "%)")
+    ) %>%
+    filter(!!sym(medpost) == valmedpost) %>%
+    select(-n, -p, -!!sym(medpost)) %>%
+    pivot_wider(values_from = np, names_from = sos_location)
+
+  out[1, 3:4] <- ds
+
+  # crude log reg
+
+  mod <- glm(formula(paste0(medpost, "== '", valmedpost, "' ~ sos_location")),
+    family = binomial(link = "logit"),
+    data = data %>% filter(!!sym(medpre) == valmedpre)
+  )
+  smod <- summary(mod)
+
+  orcrude <- c("ref", paste0(
+    fn(exp(smod$coefficients[2, 1]), dig = 1),
+    " (", fn(exp(smod$coefficients[2, 1] - global_z05 * smod$coefficients[2, 2]), dig = 1),
+    "-", fn(exp(smod$coefficients[2, 1] + global_z05 * smod$coefficients[2, 2]), dig = 1), "), ",
+    fn(smod$coefficients[2, 4], dig = 3, p = TRUE)
+  ))
+
+  out[2, 3:4] <- orcrude
+
+  if (adj) {
+    # adj log reg
+
+    modvarstmp <- modvars
+    modvarstmp <- modvarstmp[modvarstmp != "shf_gfrckdepi_cat"]
+
+    amod <- hf_glm_mids(formula(paste0(
+      medpost, "=='", valmedpost, "' ~ sos_location + ", paste(modvarstmp, collapse = " + ")
+    )),
+    data = imp,
+    subset = expr(!!sym(medpre) == valmedpre & !!sym(subvar) == subval & !is.na(!!sym(subvar)))
+    )
+    asmod <- summary(pool(amod))
+
+    # for forestplot
+    out[3, 5] <- asmod$estimate[2]
+    out[3, 6] <- asmod$estimate[2] - global_z05 * asmod$std.error[2]
+    out[3, 7] <- asmod$estimate[2] + global_z05 * asmod$std.error[2]
+    out[3, 8] <- paste0(
+      fn(exp(asmod$estimate[2]), dig = 1),
+      " (", fn(exp(asmod$estimate[2] - global_z05 * asmod$std.error[2]), dig = 1),
+      "-", fn(exp(asmod$estimate[2] + global_z05 * asmod$std.error[2]), dig = 1), ")"
+    )
+    out[3, 9] <- fn(asmod$p.value[2], dig = 3, p = TRUE)
+
+    out[3, 3:4] <- c("ref", paste0(out[3, 8], ", ", out[3, 9]))
+  } else{
+    out <- out[1:2, ]
+  }
+  return(out)
+}
+
+funclogreg2 <- function(discini2, subvar2, subval2, adj2) {
+  # All
+  outall <- funclogreg(
+    medpre = "ddr_mra_prior", medpost = "ddr_mra_post", medname = "MRA",
+    discini = discini2, subvar = subvar2, subval = subval2, adj = adj2
+  )
+
+  outall <- rbind(outall, funclogreg(
+    medpre = "ddr_mra_prior8m", medpost = "ddr_mra_post",
+    medname = "MRA 2 dd/8 mo",
+    discini = discini2, subvar = subvar2, subval = subval2, adj = adj2
+  ))
+
+  outall <- rbind(outall, funclogreg(
+    medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", medname = "RASi/ARNi",
+    discini = discini2, subvar = subvar2, subval = subval2, adj = adj2
+  ))
+
+  outall <- rbind(outall, funclogreg(
+    medpre = "ddr_rasi_prior8m", medpost = "ddr_rasi_post",
+    medname = "RASi/ARNi 2 dd/8 mo",
+    discini = discini2, subvar = subvar2, subval = subval2, adj = adj2
+  ))
+
+  outall <- rbind(outall, funclogreg(
+    medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", medname = "Betablocker",
+    discini = discini2, subvar = subvar2, subval = subval2, adj = adj2
+  ))
+  outall <- rbind(outall, funclogreg(
+    medpre = "ddr_bbl_prior8m", medpost = "ddr_bbl_post",
+    medname = "Betablocker 2 dd/8 mo",
+    discini = discini2, subvar = subvar2, subval = subval2, adj = adj2
+  ))
+
+  outall <- rbind(outall, funclogreg(
+    medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+    medname = "Loop diuretic",
+    discini = discini2, subvar = subvar2, subval = subval2, adj = adj2
+  ))
+  outall <- rbind(outall, funclogreg(
+    medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
+    medname = "Loop diuretic 2 dd/8 mo",
+    discini = discini2, subvar = subvar2, subval = subval2, adj = adj2
+  ))
+}
+
+funclogreg3 <- function(discini3, subvar3, adj3 = TRUE) {
+  levs <- levels(rsdata %>% pull(!!sym(subvar3)))
+  nlevs <- length(levs)
+
+  out1 <- funclogreg2(discini2 = discini3, subvar2 = subvar3, subval2 = levs[1], adj2 = adj3)
+  out2 <- funclogreg2(discini2 = discini3, subvar2 = subvar3, subval2 = levs[2], adj2 = adj3)
+  if (nlevs == 3) {
+    out3 <- funclogreg2(discini2 = discini3, subvar2 = subvar3, subval2 = levs[3], adj2 = adj3)
+
+    outprint <- cbind(
+      out1 %>% select(priormed:`HF in-patient`),
+      out2 %>% select(`Out-patient`:`HF in-patient`),
+      out3 %>% select(`Out-patient`:`HF in-patient`)
+    )
+
+    myHeader <- c(" " = 1, " " = 1, " " = 2, " " = 2, " " = 2)
+    names(myHeader) <- c(" ", " ", levs)
+  }
+  if (nlevs == 2) {
+    outprint <- cbind(
+      out1 %>% select(priormed:`HF in-patient`),
+      out2 %>% select(`Out-patient`:`HF in-patient`)
+    )
+
+    myHeader <- c(" " = 1, " " = 1, " " = 2, " " = 2)
+    names(myHeader) <- c(" ", " ", levs)
+  }
+
+
+  write.xlsx(outprint, paste0("./output/tabs/logreg_", discini3, "_", subvar3, "_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
+
+  ## fix in order to use escape = TRUE
+  colnames(outprint) <- sanitize_text(c("Prior medication", "Model", rep(c("Out-patient", "HF in-patient"), nlevs)))
+
+  default_kable(outprint,
+    caption = sanitize_text(paste0("Treatment ", discini3, " by ", subvar3)),
+    escape = TRUE
+  ) %>%
+    landscape() %>%
+    add_header_above(myHeader)
+}
+```
+
+```{r treatdiscegfr, cache=cacheon, dependson=c("treatdisclogfuncssub")}
+
+funclogreg3(discini3 = "discontinuation", subvar3 = "shf_gfrckdepi_cat", adj3 = FALSE)
+```
+
+```{r treatiniegfr, cache=cacheon, dependson=c("treatdisclogfuncssub")}
+
+funclogreg3(discini3 = "initiation", subvar3 = "shf_gfrckdepi_cat", adj3 = FALSE)
+```
+
+```{r treatdiscegfr2, cache=cacheon, dependson=c("treatdisclogfuncssub")}
+
+funclogreg3(discini3 = "discontinuation", subvar3 = "shf_gfrckdepi_cat2")
+```
+
+```{r treatiniegfr2, cache=cacheon, dependson=c("treatdisclogfuncssub")}
+
+funclogreg3(discini3 = "initiation", subvar3 = "shf_gfrckdepi_cat2")
+```
+
+```{r treatdiscpotassium, cache=cacheon, dependson=c("treatdisclogfuncssub")}
+
+funclogreg3(discini3 = "discontinuation", subvar3 = "shf_potassium_cat", adj3 = FALSE)
+```
+
+```{r treatinipotassium, cache=cacheon, dependson=c("treatdisclogfuncssub")}
+
+funclogreg3(discini3 = "initiation", subvar3 = "shf_potassium_cat", adj3 = FALSE)
+```

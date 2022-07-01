@@ -48,8 +48,8 @@ funcdeskbar <- function(data) {
     xlab = NA,
     ylim = c(0, 100),
     xlim = c(0.2, 7.5),
-    col = global_kicols[1:4],
-    border = "white",
+    col = global_cols[c(2, 4, 6, 8)],
+    border = NA,
     cex.lab = cexmy,
     cex.names = cexmy,
     names.arg = unique(data$treat)
@@ -58,8 +58,8 @@ funcdeskbar <- function(data) {
   axis(2, las = 2, cex.axis = cexmy)
 
   legend("topright", levels(data$treatstatus),
-    fill = global_kicols[1:4],
-    col = global_kicols[1:4], border = global_kicols[1:4], bty = "n",
+    fill = global_cols[c(2, 4, 6, 8)],
+    col = global_cols[c(2, 4, 6, 8)], border = global_cols[c(2, 4, 6, 8)], bty = "n",
     cex = cexmy
   )
 }
@@ -81,6 +81,8 @@ default_kable(ref %>% select(treat, treatstatus, nper),
 funcdeskbar(ref)
 ```
 
+\clearpage
+
 ```{r descmref, cache=cacheon, dependson="bardesctreat"}
 mref <- funcdesk2(ef2 = "HFmrEF")
 
@@ -96,6 +98,8 @@ default_kable(mref %>% select(treat, treatstatus, nper),
 
 funcdeskbar(mref)
 ```
+
+\clearpage
 
 ```{r descall, cache=cacheon, dependson="bardesctreat"}
 all <- funcdesk2(ef2 = c("HFrEF", "HFmrEF"))

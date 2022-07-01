@@ -1,10 +1,11 @@
 ---
-title: 'Statistical report: Discontinuation/Initiation of guideline-recommended HF treatments after a HF hospitalization'
+title: 'Statistical report: Discontinuation/Initiation of guideline-recommended HF treatments after a HF hospitalization - DRAFT'
 author: 'Statistician: Lina Benson'
   
 date: "`r Sys.Date()`"
 output:
   pdf_document:
+    dev: cairo_pdf
     fig_caption: yes
     fig_height: 7
     fig_width: 7
@@ -12,6 +13,8 @@ output:
 link-citations: yes
 bibliography: references.bib
 nocite: '@*'
+header-includes:
+   - \usepackage{draftwatermark}
 ---
 
 \newpage 
@@ -48,7 +51,7 @@ cacheon <- TRUE
 
 ## Data source
 
-SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.4. 
+SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.7. 
 
 ## Inclusion/exclusion criteria
 
@@ -97,6 +100,14 @@ Missing data was imputed with multiple imputation (n = 10) using mice [@mice].
 Variables included in the model are indicated in 
 Table \ref{tab:tab1mra}. 
 
+## Subgroup analyses
+
+Analyses were also preformed by eGFR and potassium. 
+Adjustment in the models was not performed for the respective variable 
+(i.e. potassium is not adjusted for when presented in subgroups by potassium and similar for eGFR). 
+
+The subgroup analyses are only performed for the combined HFrEF/HFmrEF group. 
+
 ## Baseline characteristics
 
 ```{r, child = "../src/tab1.Rmd"}
@@ -121,6 +132,12 @@ not on the respective medications prior to the hospitalization/visit (initiation
 Adjustment is performed for variables indicated in \ref{tab:tab1all}.  
 
 ```{r, child = "../src/treatdisclogreg.Rmd"}
+
+```
+
+\clearpage 
+
+```{r, child = "../src/treatdisclogreg_sub.Rmd"}
 
 ```
 
@@ -163,6 +180,10 @@ Only patients hospitalized for HF are included (the controls are dropped from th
 
 ```
 
+```{r, child = "../src/predtreatdisc_sub.Rmd"}
+
+```
+
 ### Assumptions
 
 Outliers were investigated with Cook's distance and multicollinearity 
@@ -201,10 +222,14 @@ filter(sos_location == "HF in-patient") %>% summarise(sumpy = fn(sum(sos_outtime
 
 ```
 
+```{r, child = "../src/treatdisccoxreg_sub.Rmd"}
+
+```
+
 ### Assumptions
 
 The proportional hazards assumption was investigated using the scaled Schoenfeld 
-residuals and linearity for the continuous variable age for the outcome CV mortality/first HF hospitalization within 3 years. 
+residuals for the outcome CV mortality/first HF hospitalization within 3 years. 
 => No action deemed necessary. 
 
 \clearpage

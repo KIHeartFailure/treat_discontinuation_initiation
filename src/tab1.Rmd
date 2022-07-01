@@ -110,8 +110,8 @@ footnote(
     "Source: SwedeHF",
     "Source: NPR",
     "Source: SCB",
-    "Medium within index year",
-    "Medium within EF",
+    "Median within index year",
+    "Median within EF",
     "Included in multiple imputation model",
     "Adjusted for in logistic/cox regression models"
   )
