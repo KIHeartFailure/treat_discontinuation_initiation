@@ -2,7 +2,7 @@
 
 funclogreg <- function(efcat, medpre, medpost, medname, discini, subvar, subval, adj = TRUE) {
   out <- data.frame(matrix(NA, ncol = 9, nrow = 3))
-  colnames(out) <- c("priormed", "model", levels(rsdata$sos_location), "logor", "lci", "uci", "orci", "pval")
+  colnames(out) <- c("Prior medication", "model", levels(rsdata$sos_location), "logor", "lci", "uci", "orci", "pval")
 
   if (discini == "discontinuation") {
     valmedpre <- "Yes"
@@ -78,7 +78,7 @@ funclogreg <- function(efcat, medpre, medpost, medname, discini, subvar, subval,
     out[3, 9] <- fn(asmod$p.value[2], dig = 3, p = TRUE)
 
     out[3, 3:4] <- c("ref", paste0(out[3, 8], ", ", out[3, 9]))
-  } else{
+  } else {
     out <- out[1:2, ]
   }
   return(out)
@@ -140,7 +140,7 @@ funclogreg3 <- function(discini3, subvar3, adj3 = TRUE) {
     out3 <- funclogreg2(discini2 = discini3, subvar2 = subvar3, subval2 = levs[3], adj2 = adj3)
 
     outprint <- cbind(
-      out1 %>% select(priormed:`HF in-patient`),
+      out1 %>% select(`Prior medication`:`HF in-patient`),
       out2 %>% select(`Out-patient`:`HF in-patient`),
       out3 %>% select(`Out-patient`:`HF in-patient`)
     )
@@ -150,55 +150,279 @@ funclogreg3 <- function(discini3, subvar3, adj3 = TRUE) {
   }
   if (nlevs == 2) {
     outprint <- cbind(
-      out1 %>% select(priormed:`HF in-patient`),
+      out1 %>% select(`Prior medication`:`HF in-patient`),
       out2 %>% select(`Out-patient`:`HF in-patient`)
     )
 
     myHeader <- c(" " = 1, " " = 1, " " = 2, " " = 2)
     names(myHeader) <- c(" ", " ", levs)
-  }
 
+    if (adj3) {
+      outforest1 <-
+        out1 %>%
+        mutate(cons = str_detect(`Prior medication`, "2 dd/8 mo")) %>%
+        filter(model %in% c("n (%)", "Adjusted OR (95% CI), p") &
+          !cons) %>%
+        mutate(
+          ds = paste0(`HF in-patient`, " vs. ", `Out-patient`),
+          ds = if_else(model == "Adjusted OR (95% CI), p", lag(ds), ds),
+          hf = levs[1]
+        ) %>%
+        filter(model %in% c("Adjusted OR (95% CI), p")) %>%
+        select(`Prior medication`, hf, ds, logor:pval)
+
+      outforest2 <-
+        out2 %>%
+        mutate(cons = str_detect(`Prior medication`, "2 dd/8 mo")) %>%
+        filter(model %in% c("n (%)", "Adjusted OR (95% CI), p") &
+          !cons) %>%
+        mutate(
+          ds = paste0(`HF in-patient`, " vs. ", `Out-patient`),
+          ds = if_else(model == "Adjusted OR (95% CI), p", lag(ds), ds),
+          hf = levs[2]
+        ) %>%
+        filter(model %in% c("Adjusted OR (95% CI), p")) %>%
+        select(`Prior medication`, hf, ds, logor:pval)
+
+      outforest <- bind_rows(outforest1, outforest2)
+    }
+  }
 
   write.xlsx(outprint, paste0("./output/tabs/logreg_", discini3, "_", subvar3, "_", Sys.Date(), ".xlsx"), rowNames = FALSE, overwrite = T)
 
   ## fix in order to use escape = TRUE
   colnames(outprint) <- sanitize_text(c("Prior medication", "Model", rep(c("Out-patient", "HF in-patient"), nlevs)))
 
-  default_kable(outprint,
-    caption = sanitize_text(paste0("Treatment ", discini3, " by ", subvar3)),
-    escape = TRUE
-  ) %>%
-    landscape() %>%
-    add_header_above(myHeader)
+  if (adj3) {
+    out <- list(outprint = outprint, outforest = outforest, myHeader = myHeader)
+  } else {
+    out <- list(outprint = outprint, myHeader = myHeader)
+  }
+
+  return(out)
+}
+```
+
+```{r treatdisclogforestfuncsub, cache=cacheon}
+
+funclogregforest <- function(data, discini, axismy = NULL) {
+  foresttmp <- tibble(
+    hf = c(
+      paste0("MRA ", discini),
+      paste0("RASi/ARNi ", discini),
+      paste0("Betablocker ", discini),
+      paste0("Loop diuretic ", discini)
+    ),
+    `Prior medication` = c(
+      "MRA",
+      "RASi/ARNi",
+      "Betablocker",
+      "Loop diuretic"
+    )
+  )
+  forest <- bind_rows(foresttmp, data) %>%
+    mutate(
+      priormedno = case_when(
+        `Prior medication` == "MRA" ~ 1,
+        `Prior medication` == "RASi/ARNi" ~ 2,
+        `Prior medication` == "Betablocker" ~ 3,
+        `Prior medication` == "Loop diuretic" ~ 4,
+      ),
+      hfno = case_when(
+        hf == ">=60" ~ 2,
+        hf == "<60" ~ 3,
+        TRUE ~ 1
+      )
+    ) %>%
+    arrange(priormedno, hfno)
+
+  forest <- forest %>%
+    mutate(
+      order = n():1,
+      cols = case_when(
+        hf == ">=60" ~ global_cols[4],
+        hf == "<60" ~ global_cols[2]
+      ),
+      hf = case_when(
+        hf == ">=60" ~ "eGFR \u226560",
+        hf == "<60" ~ "eGFR <60",
+        TRUE ~ hf
+      )
+    )
+
+  cextext <- 1.3
+
+  if (is.null(axismy)) {
+    m1 <- round(exp(min(as.numeric(forest$lci), na.rm = T)), 1)
+    m2 <- round(exp(max(as.numeric(forest$uci), na.rm = T)), 1)
+
+    axismy <- c(m1, 1, m2)
+  }
+  ylim <- c(min(axismy), max(axismy))
+
+  # c(bottom, left, top, right)
+  par(mar = c(3.5, 31, 0.1, 12.1) + 0.2)
+
+  plot(forest$logor, forest$order,
+    cex = 2,
+    xlim = log(ylim),
+    xlab = "",
+    cex.lab = cextext,
+    ylim = c(1, max(forest$order) + 1),
+    axes = FALSE,
+    ylab = NA,
+    main = NA,
+    type = "p",
+    pch = 22,
+    bg = forest$cols,
+    col = forest$cols,
+    xaxs = "i"
+  )
+
+  for (i in 1:nrow(forest)) {
+    if (!is.na(forest$lci[i])) {
+      matplot(c(forest$lci[i], forest$uci[i]), c(forest$order[i], forest$order[i]),
+        type = "l", add = TRUE, col = forest$cols[i], cex = 1, lwd = 2.5
+      )
+    }
+  }
+
+  matplot(c(log(1), log(1)), c(-1, max(forest$order)), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
+
+  axis(1,
+    cex.axis = cextext, at = log(axismy),
+    labels = axismy, gap.axis = -100000
+  )
+
+  axis(2,
+    at = forest %>% filter(hfno == 1) %>% pull(order),
+    labels = forest %>% filter(hfno == 1) %>% pull(hf),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 15, hadj = 1, font = 2
+  )
+  axis(2,
+    at = forest %>% filter(hfno != 1) %>% pull(order),
+    labels = forest %>% filter(hfno != 1) %>% pull(hf),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 15, hadj = 1
+  )
+
+  axis(2,
+    at = max(forest$order) + 1,
+    labels = "Events",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = forest %>% pull(order),
+    labels = forest %>% pull(ds),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5
+  )
+
+  axis(2,
+    at = max(forest$order) + 1,
+    labels = "OR (95% CI)",
+    cex.axis = cextext, tick = FALSE, las = 2, line = -12, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = forest %>% pull(order),
+    labels = forest %>% pull(orci),
+    cex.axis = cextext, tick = FALSE, las = 2, line = -12, hadj = 0.5
+  )
+
+  axis(2,
+    at = max(forest$order) + 1,
+    labels = "P-value",
+    cex.axis = cextext, tick = FALSE, las = 2, line = -18, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = forest %>% pull(order),
+    labels = forest %>% pull(pval),
+    cex.axis = cextext, tick = FALSE, las = 2, line = -18, hadj = 0.5
+  )
+
+  axis(1,
+    at = (log(ylim[2]) - abs(log(ylim[1]))) / 2, cex.axis = cextext,
+    labels = "OR (95% CI)", line = 1.5, tick = FALSE
+  )
 }
 ```
 
 ```{r treatdiscegfr, cache=cacheon, dependson=c("treatdisclogfuncssub")}
 
-funclogreg3(discini3 = "discontinuation", subvar3 = "shf_gfrckdepi_cat", adj3 = FALSE)
+out <- funclogreg3(discini3 = "discontinuation", subvar3 = "shf_gfrckdepi_cat", adj3 = FALSE)
+
+default_kable(out$outprint,
+  caption = sanitize_text("Treatment discontinuation by eGFR (3 levels) HFrEF + HFmrEF"),
+  escape = TRUE
+) %>%
+  landscape() %>%
+  add_header_above(out$myHeader)
 ```
 
 ```{r treatiniegfr, cache=cacheon, dependson=c("treatdisclogfuncssub")}
 
-funclogreg3(discini3 = "initiation", subvar3 = "shf_gfrckdepi_cat", adj3 = FALSE)
+out <- funclogreg3(discini3 = "initiation", subvar3 = "shf_gfrckdepi_cat", adj3 = FALSE)
+
+default_kable(out$outprint,
+  caption = sanitize_text("Treatment initiation by eGFR (3 levels) HFrEF + HFmrEF"),
+  escape = TRUE
+) %>%
+  landscape() %>%
+  add_header_above(out$myHeader)
 ```
 
 ```{r treatdiscegfr2, cache=cacheon, dependson=c("treatdisclogfuncssub")}
 
-funclogreg3(discini3 = "discontinuation", subvar3 = "shf_gfrckdepi_cat2")
+out <- funclogreg3(discini3 = "discontinuation", subvar3 = "shf_gfrckdepi_cat2")
+
+default_kable(out$outprint,
+  caption = sanitize_text("Treatment discontinuation by eGFR (2 levels) HFrEF + HFmrEF"),
+  escape = TRUE
+) %>%
+  landscape() %>%
+  add_header_above(out$myHeader)
+```
+
+```{r treatdiscegfr2forest, fig.cap = "Treatment discontinuation", cache=cacheon, dependson=c("treatdisclogfuncssub", "treatdiscegfr2", "treatdisclogforestfuncsub"), fig.width=10, fig.height=7}
+
+funclogregforest(data = out$outforest, discini = "discontinuation")
 ```
 
 ```{r treatiniegfr2, cache=cacheon, dependson=c("treatdisclogfuncssub")}
 
-funclogreg3(discini3 = "initiation", subvar3 = "shf_gfrckdepi_cat2")
+out <- funclogreg3(discini3 = "initiation", subvar3 = "shf_gfrckdepi_cat2")
+
+default_kable(out$outprint,
+  caption = sanitize_text("Treatment initiation by eGFR (2 levels) HFrEF + HFmrEF"),
+  escape = TRUE
+) %>%
+  landscape() %>%
+  add_header_above(out$myHeader)
+```
+
+```{r treatiniegfr2forest, fig.cap = "Treatment discontinuation", cache=cacheon, dependson=c("treatdisclogfuncssub", "treatiniegfr2", "treatdisclogforestfuncsub"), fig.width=10, fig.height=7}
+
+funclogregforest(data = out$outforest, discini = "initiation", axismy = c(1, 7, 22))
 ```
 
 ```{r treatdiscpotassium, cache=cacheon, dependson=c("treatdisclogfuncssub")}
 
-funclogreg3(discini3 = "discontinuation", subvar3 = "shf_potassium_cat", adj3 = FALSE)
+out <- funclogreg3(discini3 = "discontinuation", subvar3 = "shf_potassium_cat", adj3 = FALSE)
+
+default_kable(out$outprint,
+  caption = sanitize_text("Treatment discontinuation by potassium HFrEF + HFmrEF"),
+  escape = TRUE
+) %>%
+  landscape() %>%
+  add_header_above(out$myHeader)
 ```
 
 ```{r treatinipotassium, cache=cacheon, dependson=c("treatdisclogfuncssub")}
 
-funclogreg3(discini3 = "initiation", subvar3 = "shf_potassium_cat", adj3 = FALSE)
+out <- funclogreg3(discini3 = "initiation", subvar3 = "shf_potassium_cat", adj3 = FALSE)
+
+default_kable(out$outprint,
+  caption = sanitize_text("Treatment initiation by potassium HFrEF + HFmrEF"),
+  escape = TRUE
+) %>%
+  landscape() %>%
+  add_header_above(out$myHeader)
 ```

@@ -17,10 +17,10 @@ explain = FALSE
 tab1ref <- as_tibble(cbind(var = rownames(tab1ref), tab1ref)) %>%
   select(var, Missing, `Out-patient`, `HF in-patient`, p)
 
-# mref
-tab1mref <- print(CreateTableOne(
+# all
+tab1all <- print(CreateTableOne(
   vars = tabvars,
-  data = rsdata %>% filter(shf_ef_cat == "HFmrEF"),
+  data = rsdata,
   strata = "sos_location"
 ),
 missing = TRUE,
@@ -31,10 +31,10 @@ contDigits = 1,
 noSpaces = TRUE,
 explain = FALSE
 )
-tab1mref <- as_tibble(cbind(var = rownames(tab1mref), tab1mref)) %>%
+tab1all <- as_tibble(cbind(var = rownames(tab1all), tab1all)) %>%
   select(var, Missing, `Out-patient`, `HF in-patient`, p)
 
-tab1 <- full_join(tab1ref, tab1mref, by = "var")
+tab1 <- full_join(tab1ref, tab1all, by = "var")
 
 tab1 <- tab1 %>%
   # remove = Yes
@@ -102,7 +102,7 @@ footnote(
     escape = FALSE
   ) %>%
     landscape() %>%
-    add_header_above(c(" " = 1, "HFrEF" = 4, "HFmrEF" = 4)),
+    add_header_above(c(" " = 1, "HFrEF" = 4, "HFrEF + HFmrEF" = 4)),
   general = c(
     "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test."
   ),
@@ -218,7 +218,7 @@ tab1func <- function(medpre, title) {
   footnote(
     default_kable(tab1,
       font_size = 5,
-      caption = paste0("Baseline characteristics by ", title),
+      caption = paste0("Baseline characteristics by ", title, " HFrEF + HFmrEF"),
       longtable = TRUE,
       escape = FALSE
     ) %>%

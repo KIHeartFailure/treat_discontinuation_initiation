@@ -49,7 +49,7 @@ funccoxreg <- function(time, event, gfrcat, medpre, medpost, medname, discini2) 
     fn(r$rate[2], dig = 0), " (",
     fn(r$lower[2], dig = 0), "-",
     fn(r$upper[2], dig = 0), ")",
-    " vs.",
+    " vs. ",
     fn(r$rate[1], dig = 0), " (",
     fn(r$lower[1], dig = 0), "-",
     fn(r$upper[1], dig = 0), ")"
@@ -221,7 +221,7 @@ funccoxreg2 <- function(time2, event2, discini) {
 
 ```{r treatdisccoxregforestsub, cache=cacheon, dependson=c("treatdisccoxregsub"), fig.width=10, fig.height=7}
 
-forestfunc <- function(data, discini, axismy) {
+forestfunc <- function(data, discini, axismy = NULL) {
   foresttmp <- tibble(
     hf = c(
       paste0("MRA ", discini),
@@ -258,27 +258,33 @@ forestfunc <- function(data, discini, axismy) {
       cols = case_when(
         hf == ">=60" ~ global_cols[4],
         hf == "<60" ~ global_cols[2]
-      ), 
-      hf = case_when(hf == ">=60" ~ "eGFR \u226560", 
-                     hf == "<60" ~ "eGFR <60", 
-                     TRUE ~ hf)
+      ),
+      hf = case_when(
+        hf == ">=60" ~ "eGFR \u226560",
+        hf == "<60" ~ "eGFR <60",
+        TRUE ~ hf
+      )
     )
 
-  cextext <- 1.1
+  cextext <- 1.3
 
-  # exp(min(as.numeric(forest$lci), na.rm = T))
-  # exp(max(as.numeric(forest$uci), na.rm = T))
+  if (is.null(axismy)) {
+    m1 <- round(exp(min(as.numeric(forest$lci), na.rm = T)), 1)
+    m2 <- round(exp(max(as.numeric(forest$uci), na.rm = T)), 1)
+
+    axismy <- c(m1, 1, m2)
+  }
   ylim <- c(min(axismy), max(axismy))
 
   # c(bottom, left, top, right)
-  par(mar = c(3, 28.5, 0.5, 9.5) + 0.2)
+  par(mar = c(3.5, 32, 0.5, 10.5) + 0.2)
 
   plot(forest$loghr, forest$order,
     cex = 2,
     xlim = log(ylim),
     xlab = "",
     cex.lab = cextext,
-    ylim = c(1, max(forest$order) + .4),
+    ylim = c(1, max(forest$order) + 1),
     axes = FALSE,
     ylab = NA,
     main = NA,
@@ -292,14 +298,8 @@ forestfunc <- function(data, discini, axismy) {
   for (i in 1:nrow(forest)) {
     if (!is.na(forest$lci[i])) {
       matplot(c(forest$lci[i], forest$uci[i]), c(forest$order[i], forest$order[i]),
-        type = "l", add = TRUE, col = forest$cols[i], cex = 1, lwd = 2
+        type = "l", add = TRUE, col = forest$cols[i], cex = 1, lwd = 2.5
       )
-      # if (forest$lci[i] < log(minmy)) {
-      #   arrows(0.01, i, 0, i, col = forest$cols[i], code = 2, length = 0.15)
-      # }
-      #  if (forest$uci[i] > log(maxmy)) {
-      #   arrows(0.01, i, 0, i, col = forest$cols[i], code = 2, length = 0.15)
-      # }
     }
   }
 
@@ -313,50 +313,50 @@ forestfunc <- function(data, discini, axismy) {
   axis(2,
     at = forest %>% filter(hfno == 1) %>% pull(order),
     labels = forest %>% filter(hfno == 1) %>% pull(hf),
-    cex.axis = cextext, tick = FALSE, las = 2, line = 14.5, hadj = 1, font = 2
+    cex.axis = cextext, tick = FALSE, las = 2, line = 16, hadj = 1, font = 2
   )
   axis(2,
     at = forest %>% filter(hfno != 1) %>% pull(order),
     labels = forest %>% filter(hfno != 1) %>% pull(hf),
-    cex.axis = cextext, tick = FALSE, las = 2, line = 14.5, hadj = 1
+    cex.axis = cextext, tick = FALSE, las = 2, line = 16, hadj = 1
   )
 
   axis(2,
     at = max(forest$order) + 1,
     labels = "Incidence rate",
-    cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5, font = 2
+    cex.axis = cextext, tick = FALSE, las = 2, line = 7.5, hadj = 0.5, font = 2
   )
   axis(2,
     at = forest %>% pull(order),
     labels = forest %>% pull(incforest),
-    cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5
+    cex.axis = cextext, tick = FALSE, las = 2, line = 7.5, hadj = 0.5
   )
 
   axis(2,
     at = max(forest$order) + 1,
     labels = "HR (95% CI)",
-    cex.axis = cextext, tick = FALSE, las = 2, line = -16, hadj = 0.5, font = 2
+    cex.axis = cextext, tick = FALSE, las = 2, line = -11.5, hadj = 0.5, font = 2
   )
   axis(2,
     at = forest %>% pull(order),
     labels = forest %>% pull(hrci),
-    cex.axis = cextext, tick = FALSE, las = 2, line = -16, hadj = 0.5
+    cex.axis = cextext, tick = FALSE, las = 2, line = -11.5, hadj = 0.5
   )
 
   axis(2,
     at = max(forest$order) + 1,
     labels = "P-value",
-    cex.axis = cextext, tick = FALSE, las = 2, line = -20.5, hadj = 0.5, font = 2
+    cex.axis = cextext, tick = FALSE, las = 2, line = -16.9, hadj = 0.5, font = 2
   )
   axis(2,
     at = forest %>% pull(order),
     labels = forest %>% pull(pval),
-    cex.axis = cextext, tick = FALSE, las = 2, line = -20.5, hadj = 0.5
+    cex.axis = cextext, tick = FALSE, las = 2, line = -16.9, hadj = 0.5
   )
 
   axis(1,
     at = (log(ylim[2]) - abs(log(ylim[1]))) / 2, cex.axis = cextext,
-    labels = "HR (95% CI)", line = 1, tick = FALSE
+    labels = "HR (95% CI)", line = 1.5, tick = FALSE
   )
 }
 ```
@@ -366,16 +366,16 @@ forestfunc <- function(data, discini, axismy) {
 discdatadeath <- funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_death3y", discini = "discontinuation")
 
 default_kable(discdatadeath$outprint,
-  caption = paste0("Treatment discontinuation - All-cause mortality within 3 years by eGFR"),
+  caption = paste0("Treatment discontinuation - All-cause mortality within 3 years by eGFR HFrEF + HFmrEF"),
   escape = TRUE
 ) %>%
   landscape() %>%
   add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatdisccoxregdeathforestsub, fig.cap = "Treatment discontinuation - All-cause mortality", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatdisccoxregdeathsub"), fig.width=10, fig.height=7}
+```{r treatdisccoxregdeathforestsub, fig.cap = "Treatment discontinuation - All-cause mortality by eGFR HFrEF + HFmrEF", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatdisccoxregdeathsub"), fig.width=10, fig.height=7}
 
-forestfunc(data = discdatadeath$outforest, discini = "discontinuation", axismy = c(0.5, 1, 1.5, 2))
+forestfunc(data = discdatadeath$outforest, discini = "discontinuation")
 ```
 
 ```{r treatdisccoxregdeathcvsub, cache=cacheon, dependson="treatdisccoxregsub"}
@@ -383,16 +383,16 @@ forestfunc(data = discdatadeath$outforest, discini = "discontinuation", axismy =
 discdatadeathcv <- funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_deathcv3y", discini = "discontinuation")
 
 default_kable(discdatadeathcv$outprint,
-  caption = "Treatment discontinuation - CV mortality within 3 years by eGFR",
+  caption = "Treatment discontinuation - CV mortality within 3 years by eGFR HFrEF + HFmrEF",
   escape = TRUE
 ) %>%
   landscape() %>%
   add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatdisccoxregdeathcvforestsub, , fig.cap = "Treatment discontinuation - CV mortality", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatdisccoxregdeathcvsub"), fig.width=10, fig.height=7}
+```{r treatdisccoxregdeathcvforestsub, , fig.cap = "Treatment discontinuation - CV mortality by eGFR HFrEF + HFmrEF", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatdisccoxregdeathcvsub"), fig.width=10, fig.height=7}
 
-forestfunc(data = discdatadeathcv$outforest, discini = "discontinuation", axismy = c(0.4, 0.6, 1, 1.6, 2.2))
+forestfunc(data = discdatadeathcv$outforest, discini = "discontinuation")
 ```
 
 ```{r treatdisccoxreghosphfsub, cache=cacheon, dependson="treatdisccoxregsub"}
@@ -400,7 +400,7 @@ forestfunc(data = discdatadeathcv$outforest, discini = "discontinuation", axismy
 discdatahosphf <- funccoxreg2(time2 = "sos_outtime_hosphf3y", event2 = "sos_out_hosphf3y", discini = "discontinuation")
 
 default_kable(discdatahosphf$outprint,
-  caption = "Treatment discontinuation - First HF hospitalization within 3 years by eGFR",
+  caption = "Treatment discontinuation - First HF hospitalization within 3 years by eGFR HFrEF + HFmrEF",
   escape = TRUE
 ) %>%
   landscape() %>%
@@ -415,7 +415,7 @@ discdatadeathcvhosphf <- funccoxreg2(
 )
 
 default_kable(discdatadeathcvhosphf$outprint,
-  caption = "Treatment discontinuation - CV mortality/first HF hospitalization within 3 years by eGFR",
+  caption = "Treatment discontinuation - CV mortality/first HF hospitalization within 3 years by eGFR HFrEF + HFmrEF",
   escape = TRUE
 ) %>%
   landscape() %>%
@@ -427,16 +427,16 @@ default_kable(discdatadeathcvhosphf$outprint,
 inidatadeath <- funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_death3y", discini = "initiation")
 
 default_kable(inidatadeath$outprint,
-  caption = paste0("Treatment initiation - All-cause mortality within 3 years by eGFR"),
+  caption = paste0("Treatment initiation - All-cause mortality within 3 years by eGFR HFrEF + HFmrEF"),
   escape = TRUE
 ) %>%
   landscape() %>%
   add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatinicoxregdeathforestsub, fig.cap = "Treatment initiation - All-cause mortality", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatinicoxregdeathsub"), fig.width=10, fig.height=7}
+```{r treatinicoxregdeathforestsub, fig.cap = "Treatment initiation - All-cause mortality by eGFR HFrEF + HFmrEF", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatinicoxregdeathsub"), fig.width=10, fig.height=7}
 
-forestfunc(data = inidatadeath$outforest, discini = "initiation", axismy = c(0.4, 0.6, 1, 1.6, 2.8))
+forestfunc(data = inidatadeath$outforest, discini = "initiation")
 ```
 
 ```{r treatinicoxregdeathcvsub, cache=cacheon, dependson="treatdisccoxregsub"}
@@ -444,16 +444,16 @@ forestfunc(data = inidatadeath$outforest, discini = "initiation", axismy = c(0.4
 inidatadeathcv <- funccoxreg2(time2 = "sos_outtime_death3y", event2 = "sos_out_deathcv3y", discini = "initiation")
 
 default_kable(inidatadeathcv$outprint,
-  caption = "Treatment initiation - CV mortality within 3 years by eGFR",
+  caption = "Treatment initiation - CV mortality within 3 years by eGFR HFrEF + HFmrEF",
   escape = TRUE
 ) %>%
   landscape() %>%
   add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
-```{r treatinicoxregdeathcvforestsub, fig.cap = "Treatment initiation - CV mortality", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatinicoxregdeathcvsub"), fig.width=10, fig.height=7}
+```{r treatinicoxregdeathcvforestsub, fig.cap = "Treatment initiation - CV mortality by eGFR HFrEF + HFmrEF", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatinicoxregdeathcvsub"), fig.width=10, fig.height=7}
 
-forestfunc(data = inidatadeathcv$outforest, discini = "initiation", axismy = c(0.4, 0.6, 1, 2, 4, 6))
+forestfunc(data = inidatadeathcv$outforest, discini = "initiation")
 ```
 
 ```{r treatinicoxreghosphfsub, cache=cacheon, dependson="treatdisccoxregsub"}
@@ -461,7 +461,7 @@ forestfunc(data = inidatadeathcv$outforest, discini = "initiation", axismy = c(0
 inidatahosphf <- funccoxreg2(time2 = "sos_outtime_hosphf3y", event2 = "sos_out_hosphf3y", discini = "initiation")
 
 default_kable(inidatahosphf$outprint,
-  caption = "Treatment initiation - First HF hospitalization within 3 years by eGFR",
+  caption = "Treatment initiation - First HF hospitalization within 3 years by eGFR HFrEF + HFmrEF",
   escape = TRUE
 ) %>%
   landscape() %>%
@@ -476,7 +476,7 @@ inidatadeathcvhosphf <- funccoxreg2(
 )
 
 default_kable(inidatadeathcvhosphf$outprint,
-  caption = "Treatment initiation - CV mortality/first HF hospitalization within 3 years by eGFR",
+  caption = "Treatment initiation - CV mortality/first HF hospitalization within 3 years by eGFR HFrEF + HFmrEF",
   escape = TRUE
 ) %>%
   landscape() %>%

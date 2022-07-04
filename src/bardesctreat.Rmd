@@ -83,36 +83,18 @@ funcdeskbar(ref)
 
 \clearpage
 
-```{r descmref, cache=cacheon, dependson="bardesctreat"}
-mref <- funcdesk2(ef2 = "HFmrEF")
-
-default_kable(mref %>% select(treat, treatstatus, nper),
-  col.names = c("Treatment", "Status", "n (%)"),
-  caption = "Treatment status after first HFH - HFmrEF",
-  escape = TRUE,
-  scale = F
-)
-```
-
-```{r descmrefbar, fig.cap = "Treatment status after first HFH - HFmrEF", cache=cacheon, dependson=c("bardesctreat", "descmref"), fig.width=9, fig.height=7}
-
-funcdeskbar(mref)
-```
-
-\clearpage
-
 ```{r descall, cache=cacheon, dependson="bardesctreat"}
 all <- funcdesk2(ef2 = c("HFrEF", "HFmrEF"))
 
 default_kable(all %>% select(treat, treatstatus, nper),
   col.names = c("Treatment", "Status", "n (%)"),
-  caption = "Treatment status after first HFH - All (HFrEF + HFmrEF)",
+  caption = "Treatment status after first HFH - HFrEF + HFmrEF",
   escape = TRUE,
   scale = F
 )
 ```
 
-```{r descallbar, fig.cap = "Treatment status after first HFH - All (HFrEF + HFmrEF)", cache=cacheon, dependson=c("bardesctreat", "descall"), fig.width=9, fig.height=7}
+```{r descallbar, fig.cap = "Treatment status after first HFH - HFrEF + HFmrEF", cache=cacheon, dependson=c("bardesctreat", "descall"), fig.width=9, fig.height=7}
 
 funcdeskbar(all)
 ```

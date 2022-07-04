@@ -102,15 +102,15 @@ Table \ref{tab:tab1mra}.
 
 ## Subgroup analyses
 
+Analyses were performed for HFrEF and HFrEF + HFmrEF combined.
+
 Analyses were also preformed by eGFR and potassium. 
 Adjustment in the models was not performed for the respective variable 
 (i.e. potassium is not adjusted for when presented in subgroups by potassium and similar for eGFR). 
 
-The subgroup analyses are only performed for the combined HFrEF/HFmrEF group. 
-
 ## Baseline characteristics
 
-```{r, child = "../src/tab1.Rmd"}
+```{r, child = "./src/tab1.Rmd"}
 
 ```
 
@@ -118,7 +118,7 @@ The subgroup analyses are only performed for the combined HFrEF/HFmrEF group.
 
 Only patients hospitalized for HF are included (the controls are dropped from this analysis). 
 
-```{r, child = "../src/bardesctreat.Rmd"}
+```{r, child = "./src/bardesctreat.Rmd"}
 
 ```
 
@@ -126,18 +126,18 @@ Only patients hospitalized for HF are included (the controls are dropped from th
 
 ## Treatment discontinuation/initiation 
 
-A logistic regression is performed separately for the 2 EF groups and EF combined for patients 
+A logistic regression is performed separately for HFrEF and EF combined for patients 
 with the respective medications prior to the hospitalization/visit (discontinuation analysis), 
 not on the respective medications prior to the hospitalization/visit (initiation analysis) with discontinuation/initiation as the outcome. 
 Adjustment is performed for variables indicated in \ref{tab:tab1all}.  
 
-```{r, child = "../src/treatdisclogreg.Rmd"}
+```{r, child = "./src/treatdisclogreg.Rmd"}
 
 ```
 
 \clearpage 
 
-```{r, child = "../src/treatdisclogreg_sub.Rmd"}
+```{r, child = "./src/treatdisclogreg_sub.Rmd"}
 
 ```
 
@@ -162,7 +162,7 @@ at discontinuation at 1 year it is number of HF hospitalizations within 1 year f
 treatment within 1-1.5 years after index and excluding patients without 1.5 years 
 follow-up and without the treatment prior to index. 
 
-```{r, child = "../src/rephosp.Rmd"}
+```{r, child = "./src/rephosp.Rmd"}
 
 ```
 
@@ -176,11 +176,7 @@ not on the respective medication prior to the hospitalization (initiation analys
 with discontinuation/initiation as the outcome. 
 Only patients hospitalized for HF are included (the controls are dropped from this analysis). 
 
-```{r, child = "../src/predtreatdisc.Rmd"}
-
-```
-
-```{r, child = "../src/predtreatdisc_sub.Rmd"}
+```{r, child = "./src/predtreatdisc.Rmd"}
 
 ```
 
@@ -213,16 +209,16 @@ summarise(med = fn(median(sos_outtime_death3y / 365.25), dig = 1),
 filter(sos_location == "HF in-patient") %>% summarise(sumpy = fn(sum(sos_outtime_death3y) / 365.25, dig = 0)) %>%
                                    pull(sumpy)` patient-years of follow-up.
 
-```{r, child = "../src/overallout.Rmd"}
+```{r, child = "./src/overallout.Rmd"}
 
 ```
 
 
-```{r, child = "../src/treatdisccoxreg.Rmd"}
+```{r, child = "./src/treatdisccoxreg.Rmd"}
 
 ```
 
-```{r, child = "../src/treatdisccoxreg_sub.Rmd"}
+```{r, child = "./src/treatdisccoxreg_sub.Rmd"}
 
 ```
 
@@ -246,7 +242,7 @@ sessionInfo()
 ## R code
 
 The R code for all data handling and statistical analyses are found: 
-https://github.com/KIHeartFailure/treatdiscontinuation. On publication
+https://github.com/KIHeartFailure/treat_discontinuation_initiation. On publication
 the repository will be made public so as to 
 link to it from the resulting article for increased transparency and code sharing.
 No data or output is stored in the repository. 

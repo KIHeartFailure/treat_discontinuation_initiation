@@ -1,4 +1,4 @@
-version: 0.10.1
+version: 0.10.2
 data_loading: TRUE
 data_loading_header: TRUE
 data_ignore: rsdata324.RData, lmsel.RData, patreg.RData
@@ -8,10 +8,8 @@ munging: FALSE
 logging: FALSE
 logging_level: INFO
 load_libraries: TRUE
-libraries: ggplot2, purrr, dplyr, tidyr, tibble, stringr, lubridate, kableExtra,
-         tableone, openxlsx, survival, haven, epitools, hfmisc, MASS, 
-         parallel, doParallel, foreach, mice, 
-         car, splines, survminer, venneuler
+libraries: purrr, dplyr, tidyr, tibble, stringr, lubridate, kableExtra, tableone, openxlsx, survival, haven, epitools, hfmisc, MASS, parallel,
+               doParallel, foreach, mice, car
 as_factors: FALSE
 tables_type: tibble
 attach_internal_libraries: FALSE

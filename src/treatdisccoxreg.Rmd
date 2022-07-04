@@ -49,7 +49,7 @@ funccoxreg <- function(time, event, efcat, medpre, medpost, medname, discini2) {
     fn(r$rate[2], dig = 0), " (",
     fn(r$lower[2], dig = 0), "-",
     fn(r$upper[2], dig = 0), ")",
-    " vs.",
+    " vs. ",
     fn(r$rate[1], dig = 0), " (",
     fn(r$lower[1], dig = 0), "-",
     fn(r$upper[1], dig = 0), ")"
@@ -136,45 +136,6 @@ funccoxreg2 <- function(time2, event2, discini) {
     medname = "Loop diuretic 2 dd/8 mo", discini2 = discini
   ))
 
-  # HFmrEF
-  outmref <- funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_mra_prior",
-    medpost = "ddr_mra_post", medname = "MRA", discini2 = discini
-  )
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_mra_prior8m",
-    medpost = "ddr_mra_post", medname = "MRA 2 dd/8 mo", discini2 = discini
-  ))
-
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_rasi_prior",
-    medpost = "ddr_rasi_post", medname = "RASi/ARNi", discini2 = discini
-  ))
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_rasi_prior8m",
-    medpost = "ddr_rasi_post", medname = "RASi/ARNi 2 dd/8 mo", discini2 = discini
-  ))
-
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_bbl_prior",
-    medpost = "ddr_bbl_post", medname = "Betablocker", discini2 = discini
-  ))
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_bbl_prior8m",
-    medpost = "ddr_bbl_post", medname = "Betablocker 2 dd/8 mo", discini2 = discini
-  ))
-
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2,
-    efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
-    medname = "Loop diuretic", discini2 = discini
-  ))
-  outmref <- rbind(outmref, funccoxreg(
-    time = time2, event = event2,
-    efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior8m", medpost = "ddr_loopdiuretic_post",
-    medname = "Loop diuretic 2 dd/8 mo", discini2 = discini
-  ))
-
   # HF all
   outall <- funccoxreg(
     time = time2, event = event2, efcat = c("HFrEF", "HFmrEF"), medpre = "ddr_mra_prior",
@@ -216,7 +177,6 @@ funccoxreg2 <- function(time2, event2, discini) {
 
   outprint <- cbind(
     outref[, 1:4],
-    outmref[, 3:4],
     outall[, 3:4]
   )
 
@@ -232,18 +192,6 @@ funccoxreg2 <- function(time2, event2, discini) {
     filter(Model %in% c("Adjusted HR (95% CI), p")) %>%
     select(`Prior medication`, hf, incforest, loghr:pval)
 
-  outforestmref <-
-    outmref %>%
-    mutate(cons = str_detect(`Prior medication`, "2 dd/8 mo")) %>%
-    filter(Model != "Crude HR (95% CI), p" &
-      !cons) %>%
-    mutate(
-      incforest = if_else(Model == "Adjusted HR (95% CI), p", lag(incforest), incforest),
-      hf = "HFmrEF"
-    ) %>%
-    filter(Model %in% c("Adjusted HR (95% CI), p")) %>%
-    select(`Prior medication`, hf, incforest, loghr:pval)
-
   outforestall <-
     outall %>%
     mutate(cons = str_detect(`Prior medication`, "2 dd/8 mo")) %>%
@@ -251,12 +199,12 @@ funccoxreg2 <- function(time2, event2, discini) {
       !cons) %>%
     mutate(
       incforest = if_else(Model == "Adjusted HR (95% CI), p", lag(incforest), incforest),
-      hf = "All (HFrEF + HFmrEF)"
+      hf = "HFrEF + HFmrEF"
     ) %>%
     filter(Model %in% c("Adjusted HR (95% CI), p")) %>%
     select(`Prior medication`, hf, incforest, loghr:pval)
 
-  outforest <- bind_rows(outforestref, outforestmref, outforestall)
+  outforest <- bind_rows(outforestref, outforestall)
 
   write.xlsx(outprint, paste0("./output/tabs/coxreg_", event2, "_", discini, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
 
@@ -269,7 +217,7 @@ funccoxreg2 <- function(time2, event2, discini) {
 
 ```{r treatdisccoxregforest, cache=cacheon, dependson=c("treatdisclogreg", "treatdisclogregef", "treatdisclogregefcomb"), fig.width=10, fig.height=7}
 
-forestfunc <- function(data, discini, axismy) {
+forestfunc <- function(data, discini, axismy = NULL) {
   foresttmp <- tibble(
     hf = c(
       paste0("MRA ", discini),
@@ -294,8 +242,7 @@ forestfunc <- function(data, discini, axismy) {
       ),
       hfno = case_when(
         hf == "HFrEF" ~ 2,
-        hf == "HFmrEF" ~ 3,
-        hf == "All (HFrEF + HFmrEF)" ~ 4,
+        hf == "HFrEF + HFmrEF" ~ 3,
         TRUE ~ 1
       )
     ) %>%
@@ -305,27 +252,30 @@ forestfunc <- function(data, discini, axismy) {
     mutate(
       order = n():1,
       cols = case_when(
-        hf == "HFrEF" ~ global_cols[6],
-        hf == "HFmrEF" ~ global_cols[4],
-        hf == "All (HFrEF + HFmrEF)" ~ global_cols[2]
+        hf == "HFrEF" ~ global_cols[4],
+        hf == "HFrEF + HFmrEF" ~ global_cols[2]
       )
     )
 
-  cextext <- 1.1
+  cextext <- 1.3
 
-  # exp(min(as.numeric(forest$lci), na.rm = T))
-  # exp(max(as.numeric(forest$uci), na.rm = T))
+  if (is.null(axismy)) {
+    m1 <- round(exp(min(as.numeric(forest$lci), na.rm = T)), 1)
+    m2 <- round(exp(max(as.numeric(forest$uci), na.rm = T)), 1)
+
+    axismy <- c(m1, 1, m2)
+  }
   ylim <- c(min(axismy), max(axismy))
 
   # c(bottom, left, top, right)
-  par(mar = c(3, 28.5, 0.5, 9.5) + 0.2)
+  par(mar = c(3.5, 32, 0.5, 10.5) + 0.2)
 
   plot(forest$loghr, forest$order,
     cex = 2,
     xlim = log(ylim),
     xlab = "",
     cex.lab = cextext,
-    ylim = c(1, max(forest$order) + .4),
+    ylim = c(1, max(forest$order) + 1),
     axes = FALSE,
     ylab = NA,
     main = NA,
@@ -339,14 +289,8 @@ forestfunc <- function(data, discini, axismy) {
   for (i in 1:nrow(forest)) {
     if (!is.na(forest$lci[i])) {
       matplot(c(forest$lci[i], forest$uci[i]), c(forest$order[i], forest$order[i]),
-        type = "l", add = TRUE, col = forest$cols[i], cex = 1, lwd = 2
+        type = "l", add = TRUE, col = forest$cols[i], cex = 1, lwd = 2.5
       )
-      # if (forest$lci[i] < log(minmy)) {
-      #   arrows(0.01, i, 0, i, col = forest$cols[i], code = 2, length = 0.15)
-      # }
-      #  if (forest$uci[i] > log(maxmy)) {
-      #   arrows(0.01, i, 0, i, col = forest$cols[i], code = 2, length = 0.15)
-      # }
     }
   }
 
@@ -360,50 +304,50 @@ forestfunc <- function(data, discini, axismy) {
   axis(2,
     at = forest %>% filter(hfno == 1) %>% pull(order),
     labels = forest %>% filter(hfno == 1) %>% pull(hf),
-    cex.axis = cextext, tick = FALSE, las = 2, line = 14.5, hadj = 1, font = 2
+    cex.axis = cextext, tick = FALSE, las = 2, line = 16, hadj = 1, font = 2
   )
   axis(2,
     at = forest %>% filter(hfno != 1) %>% pull(order),
     labels = forest %>% filter(hfno != 1) %>% pull(hf),
-    cex.axis = cextext, tick = FALSE, las = 2, line = 14.5, hadj = 1
+    cex.axis = cextext, tick = FALSE, las = 2, line = 16, hadj = 1
   )
 
   axis(2,
     at = max(forest$order) + 1,
     labels = "Incidence rate",
-    cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5, font = 2
+    cex.axis = cextext, tick = FALSE, las = 2, line = 7.5, hadj = 0.5, font = 2
   )
   axis(2,
     at = forest %>% pull(order),
     labels = forest %>% pull(incforest),
-    cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5
+    cex.axis = cextext, tick = FALSE, las = 2, line = 7.5, hadj = 0.5
   )
 
   axis(2,
     at = max(forest$order) + 1,
     labels = "HR (95% CI)",
-    cex.axis = cextext, tick = FALSE, las = 2, line = -16, hadj = 0.5, font = 2
+    cex.axis = cextext, tick = FALSE, las = 2, line = -11.5, hadj = 0.5, font = 2
   )
   axis(2,
     at = forest %>% pull(order),
     labels = forest %>% pull(hrci),
-    cex.axis = cextext, tick = FALSE, las = 2, line = -16, hadj = 0.5
+    cex.axis = cextext, tick = FALSE, las = 2, line = -11.5, hadj = 0.5
   )
 
   axis(2,
     at = max(forest$order) + 1,
     labels = "P-value",
-    cex.axis = cextext, tick = FALSE, las = 2, line = -20.5, hadj = 0.5, font = 2
+    cex.axis = cextext, tick = FALSE, las = 2, line = -16.9, hadj = 0.5, font = 2
   )
   axis(2,
     at = forest %>% pull(order),
     labels = forest %>% pull(pval),
-    cex.axis = cextext, tick = FALSE, las = 2, line = -20.5, hadj = 0.5
+    cex.axis = cextext, tick = FALSE, las = 2, line = -16.9, hadj = 0.5
   )
 
   axis(1,
     at = (log(ylim[2]) - abs(log(ylim[1]))) / 2, cex.axis = cextext,
-    labels = "HR (95% CI)", line = 1, tick = FALSE
+    labels = "HR (95% CI)", line = 1.5, tick = FALSE
   )
 }
 ```
@@ -417,12 +361,12 @@ default_kable(discdatadeath$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```
 
 ```{r treatdisccoxregdeathforest, fig.cap = "Treatment discontinuation - All-cause mortality", cache=cacheon, dependson=c("treatdisccoxreg", "treatdisccoxregforest", "treatdisccoxregdeath"), fig.width=10, fig.height=7}
 
-forestfunc(data = discdatadeath$outforest, discini = "discontinuation", axismy = c(0.5, 1, 1.5, 2))
+forestfunc(data = discdatadeath$outforest, discini = "discontinuation")
 ```
 
 ```{r treatdisccoxregdeathcv, cache=cacheon, dependson="treatdisccoxreg"}
@@ -434,12 +378,12 @@ default_kable(discdatadeathcv$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```
 
 ```{r treatdisccoxregdeathcvforest, , fig.cap = "Treatment discontinuation - CV mortality", cache=cacheon, dependson=c("treatdisccoxreg", "treatdisccoxregforest", "treatdisccoxregdeathcv"), fig.width=10, fig.height=7}
 
-forestfunc(data = discdatadeathcv$outforest, discini = "discontinuation", axismy = c(0.4, 0.6, 1, 1.6, 2.2))
+forestfunc(data = discdatadeathcv$outforest, discini = "discontinuation")
 ```
 
 ```{r treatdisccoxreghosphf, cache=cacheon, dependson="treatdisccoxreg"}
@@ -451,7 +395,7 @@ default_kable(discdatahosphf$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```
 
 ```{r treatdisccoxregdeathcvhosphfp, cache=cacheon, dependson="treatdisccoxreg"}
@@ -466,7 +410,7 @@ default_kable(discdatadeathcvhosphf$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```
 
 ```{r treatinicoxregdeath, cache=cacheon, dependson="treatdisccoxreg"}
@@ -478,12 +422,12 @@ default_kable(inidatadeath$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```
 
 ```{r treatinicoxregdeathforest, fig.cap = "Treatment initiation - All-cause mortality", cache=cacheon, dependson=c("treatdisccoxreg", "treatdisccoxregforest", "treatinicoxregdeath"), fig.width=10, fig.height=7}
 
-forestfunc(data = inidatadeath$outforest, discini = "initiation", axismy = c(0.4, 0.6, 1, 1.6, 2.2))
+forestfunc(data = inidatadeath$outforest, discini = "initiation")
 ```
 
 ```{r treatinicoxregdeathcv, cache=cacheon, dependson="treatdisccoxreg"}
@@ -495,12 +439,12 @@ default_kable(inidatadeathcv$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```
 
 ```{r treatinicoxregdeathcvforest, , fig.cap = "Treatment initiation - CV mortality", cache=cacheon, dependson=c("treatdisccoxreg", "treatdisccoxregforest", "treatinicoxregdeathcv"), fig.width=10, fig.height=7}
 
-forestfunc(data = inidatadeathcv$outforest, discini = "initiation", axismy = c(0.4, 0.6, 1, 2, 3))
+forestfunc(data = inidatadeathcv$outforest, discini = "initiation")
 ```
 
 ```{r treatinicoxreghosphf, cache=cacheon, dependson="treatdisccoxreg"}
@@ -512,7 +456,7 @@ default_kable(inidatahosphf$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```
 
 ```{r treatinicoxregdeathcvhosphfp, cache=cacheon, dependson="treatdisccoxreg"}
@@ -527,5 +471,5 @@ default_kable(inidatadeathcvhosphf$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, " HFmrEF" = 2, "HFrEF + HFmrEF" = 2))
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, "HFrEF + HFmrEF" = 2))
 ```

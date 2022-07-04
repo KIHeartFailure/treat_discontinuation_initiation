@@ -91,7 +91,7 @@ checkasscox <- function(time, event, efcat, medpre, medpost, valmedpre = "Yes", 
   plot(testpat[1], resid = F, ylim = c(-4, 4))
 
   x11()
-  ggcoxfunctional(formula(paste0(
+  survminer::ggcoxfunctional(formula(paste0(
     "Surv(", time, ",", event, " == 'Yes') ~ shf_age"
   )), data = dataass)
 }
