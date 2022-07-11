@@ -81,7 +81,7 @@ checkasscox <- function(time, event, efcat, medpre, medpost, valmedpre = "Yes", 
   mod <- coxph(formula(paste0(
     "Surv(", time, ",", event, " == 'Yes') ~ relevel(",
     medpost, ", ref = '", valmedrefpost, "') + ", paste(modvars, collapse = " + ")
-  )), data = dataass %>% filter(sos_location == "HF in-patient" & shf_ef_cat == efcat & !!sym(medpre) == valmedpre))
+  )), data = dataass %>% filter(sos_location == "HF in-patient" & shf_ef_cat %in% efcat & !!sym(medpre) == valmedpre))
 
   testpat <- cox.zph(mod)
   print(sig <- testpat$table[testpat$table[, 3] < 0.05, ])
@@ -96,8 +96,8 @@ checkasscox <- function(time, event, efcat, medpre, medpost, valmedpre = "Yes", 
   )), data = dataass)
 }
 
-time2 <- "sos_outtime_hosphf3y"
-event2 <- "sos_out_deathcvhosphf3y"
+time2 <- "sos_outtime_death3y"
+event2 <- "sos_out_death3y"
 
 checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post")
 
@@ -107,27 +107,81 @@ checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_bbl_pri
 
 checkasscox(
   time = time2, event = event2,
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post"
+)
+
+
+checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post",
+            valmedpre = "No", valmedrefpost = "No")
+
+checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post",
+            valmedpre = "No", valmedrefpost = "No")
+
+checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post",
+valmedpre = "No", valmedrefpost = "No")
+
+checkasscox(
+  time = time2, event = event2,
   efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
   valmedpre = "No", valmedrefpost = "No"
 )
 
-# HFmrEF
-checkasscox(time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post")
 
-checkasscox(time = time2, event = event2, efcat = "HFmrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post")
+checkasscox(time = time2, event = event2, efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_mra_prior", medpost = "ddr_mra_post")
+
+checkasscox(time = time2, event = event2, efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post")
+
+checkasscox(time = time2, event = event2, efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post")
 
 checkasscox(
   time = time2, event = event2,
-  efcat = "HFmrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+  efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
   valmedpre = "No", valmedrefpost = "No"
 )
 
 
-# HFpEF
-checkasscox(time = time2, event = event2, efcat = "HFpEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post")
+
+
+time2 <- "sos_outtime_death3y"
+event2 <- "sos_out_deathcv3y"
+
+checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post")
+
+checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post")
+
+checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post")
 
 checkasscox(
   time = time2, event = event2,
-  efcat = "HFpEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post"
+)
+
+
+checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_mra_prior", medpost = "ddr_mra_post",
+            valmedpre = "No", valmedrefpost = "No")
+
+checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post",
+            valmedpre = "No", valmedrefpost = "No")
+
+checkasscox(time = time2, event = event2, efcat = "HFrEF", medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post",
+            valmedpre = "No", valmedrefpost = "No")
+
+checkasscox(
+  time = time2, event = event2,
+  efcat = "HFrEF", medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
   valmedpre = "No", valmedrefpost = "No"
 )
+
+
+checkasscox(time = time2, event = event2, efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_mra_prior", medpost = "ddr_mra_post")
+
+checkasscox(time = time2, event = event2, efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post")
+
+checkasscox(time = time2, event = event2, efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post")
+
+checkasscox(
+  time = time2, event = event2,
+  efcat = c("HFmrEF", "HFrEF"), medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post",
+  valmedpre = "No", valmedrefpost = "No"
+)
+

@@ -27,11 +27,10 @@ funcdesk <- function(medpre, medpost, name, nameno, ef) {
 funcdesk2 <- function(ef2) {
   mra <- funcdesk(medpre = "ddr_mra_prior", medpost = "ddr_mra_post", name = "MRA", nameno = 1, ef = ef2)
   rasi <- funcdesk(medpre = "ddr_rasi_prior", medpost = "ddr_rasi_post", name = "RASi/ARNi", nameno = 2, ef = ef2)
-  arni <- funcdesk(medpre = "ddr_arni_prior", medpost = "ddr_arni_post", name = "ARNi", nameno = 3, ef = ef2)
-  bbl <- funcdesk(medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl", nameno = 4, ef = ef2)
-  loop <- funcdesk(medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post", name = "Loop diuretics", nameno = 5, ef = ef2)
+  bbl <- funcdesk(medpre = "ddr_bbl_prior", medpost = "ddr_bbl_post", name = "Bbl", nameno = 3, ef = ef2)
+  loop <- funcdesk(medpre = "ddr_loopdiuretic_prior", medpost = "ddr_loopdiuretic_post", name = "Loop diuretics", nameno = 4, ef = ef2)
 
-  all <- bind_rows(mra, rasi, arni, bbl, loop)
+  all <- bind_rows(mra, rasi, bbl, loop)
 
   return(all)
 }
@@ -40,14 +39,14 @@ funcdeskbar <- function(data) {
   cexmy <- 1.2
 
   # c(bottom, left, top, right)
-  par(mar = c(3, 4, 0.5, 0) + 0.1)
+  par(mar = c(5.5, 4, 0.5, 0) + 0.1)
 
   b <- barplot(percent ~ treatstatus + treatno,
     data = data, beside = F, axes = F,
     ylab = "Percent",
     xlab = NA,
     ylim = c(0, 100),
-    xlim = c(0.2, 7.5),
+    # xlim = c(0.2, 7.5),
     col = global_cols[c(2, 4, 6, 8)],
     border = NA,
     cex.lab = cexmy,
@@ -57,10 +56,20 @@ funcdeskbar <- function(data) {
 
   axis(2, las = 2, cex.axis = cexmy)
 
-  legend("topright", levels(data$treatstatus),
+  # legend("topright", levels(data$treatstatus),
+  #  fill = global_cols[c(2, 4, 6, 8)],
+  #  col = global_cols[c(2, 4, 6, 8)], border = global_cols[c(2, 4, 6, 8)], bty = "n",
+  #  cex = cexmy
+  # )
+  legend("bottom",
+    inset = c(-0, -.19), xpd = NA,
+    legend = levels(data$treatstatus),
+    border = global_cols[c(2, 4, 6, 8)],
     fill = global_cols[c(2, 4, 6, 8)],
-    col = global_cols[c(2, 4, 6, 8)], border = global_cols[c(2, 4, 6, 8)], bty = "n",
-    cex = cexmy
+    col = global_cols[c(2, 4, 6, 8)],
+    bty = "n",
+    cex = cexmy,
+    horiz = TRUE
   )
 }
 ```

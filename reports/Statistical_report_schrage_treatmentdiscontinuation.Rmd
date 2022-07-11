@@ -1,5 +1,5 @@
 ---
-title: 'Statistical report: Discontinuation/Initiation of guideline-recommended HF treatments after a HF hospitalization - DRAFT'
+title: 'Statistical report: Discontinuation/Initiation of guideline-recommended HF treatments after a HF hospitalization'
 author: 'Statistician: Lina Benson'
   
 date: "`r Sys.Date()`"
@@ -13,8 +13,6 @@ output:
 link-citations: yes
 bibliography: references.bib
 nocite: '@*'
-header-includes:
-   - \usepackage{draftwatermark}
 ---
 
 \newpage 
@@ -91,22 +89,21 @@ All analyses were performed using `r sessionInfo()$R.version$version.string` [@r
 The level of significance is set to 5%, two-sided. No adjustment for multiple 
 comparisons were made and therefore the results should be viewed with some care.
 
-The location (HF in-/out-patients) is according to the National Patient Registry 
+The location (HF in-/out-patients) is according to the National Patient Register 
 (so not necessarily according to the information recorded in SwedeHF). 
 
 ## Missing data
 
 Missing data was imputed with multiple imputation (n = 10) using mice [@mice]. 
 Variables included in the model are indicated in 
-Table \ref{tab:tab1mra}. 
+Table \ref{tab:tab1all}. 
 
 ## Subgroup analyses
 
 Analyses were performed for HFrEF and HFrEF + HFmrEF combined.
 
-Analyses were also preformed by eGFR and potassium. 
-Adjustment in the models was not performed for the respective variable 
-(i.e. potassium is not adjusted for when presented in subgroups by potassium and similar for eGFR). 
+Some analyses were also preformed by eGFR and potassium. When presenting by eGFR subgroups adjustment 
+was not performed for eGFR. 
 
 ## Baseline characteristics
 
@@ -155,9 +152,7 @@ with the respective medication prior to the hospitalization (discontinuation ana
 not on the respective medication prior to the hospitalization (initiation analysis). 
 Only patients hospitalized for HF are included (the controls are dropped from this analysis). 
 Patients without time point + 6 months follow-up 
-are excluded. 
-
-E.g., when looking 
+are excluded. E.g., when looking 
 at discontinuation at 1 year it is number of HF hospitalizations within 1 year from index vs 
 treatment within 1-1.5 years after index and excluding patients without 1.5 years 
 follow-up and without the treatment prior to index. 
@@ -170,7 +165,7 @@ follow-up and without the treatment prior to index.
 
 ## Predictors of discontinuation/initiation 
 
-A logistic regression is performed separately for the 2 EF groups and EF combined for patients 
+A logistic regression is performed separately for the HFrEF and EF combined for patients 
 with the respective medication prior to the hospitalization (discontinuation analysis) and 
 not on the respective medication prior to the hospitalization (initiation analysis) 
 with discontinuation/initiation as the outcome. 
@@ -192,8 +187,8 @@ Data were censored at 2019-12-31, death (where applicable), emigration or 3 year
 
 Cox proportional hazards regressions were 
 used to model the time to first event analysis. The models were partly crude and partly adjusted for variables 
-indicated in Table \ref{tab:tab1all} and are performed separately in the respective EF 
-groups and EF combined. The analyses are performed on patients on the respective 
+indicated in Table \ref{tab:tab1all} and are performed separately for HFrEF and EF combined. 
+The analyses are performed on patients on the respective 
 medication prior to the hospitalization (discontinuation analysis) and
 not on the respective medication prior to the hospitalization (initiation analysis). 
 Only patients hospitalized for HF are included (the controls are dropped from this analysis). 
@@ -208,7 +203,7 @@ summarise(med = fn(median(sos_outtime_death3y / 365.25), dig = 1),
                                    `r rsdata %>% 
 filter(sos_location == "HF in-patient") %>% summarise(sumpy = fn(sum(sos_outtime_death3y) / 365.25, dig = 0)) %>%
                                    pull(sumpy)` patient-years of follow-up.
-
+                                   
 ```{r, child = "./src/overallout.Rmd"}
 
 ```
@@ -225,7 +220,7 @@ filter(sos_location == "HF in-patient") %>% summarise(sumpy = fn(sum(sos_outtime
 ### Assumptions
 
 The proportional hazards assumption was investigated using the scaled Schoenfeld 
-residuals for the outcome CV mortality/first HF hospitalization within 3 years. 
+residuals for the outcomes within 3 years. 
 => No action deemed necessary. 
 
 \clearpage

@@ -370,6 +370,7 @@ default_kable(discdatadeath$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
+  add_header_above(c(" " = 1, " " = 1, "On treatment after HFH" = 4)) %>%
   add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
@@ -387,39 +388,13 @@ default_kable(discdatadeathcv$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
+  add_header_above(c(" " = 1, " " = 1, "On treatment after HFH" = 4)) %>%
   add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
 ```{r treatdisccoxregdeathcvforestsub, , fig.cap = "Treatment discontinuation - CV mortality by eGFR HFrEF + HFmrEF", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatdisccoxregdeathcvsub"), fig.width=10, fig.height=7}
 
 forestfunc(data = discdatadeathcv$outforest, discini = "discontinuation")
-```
-
-```{r treatdisccoxreghosphfsub, cache=cacheon, dependson="treatdisccoxregsub"}
-
-discdatahosphf <- funccoxreg2(time2 = "sos_outtime_hosphf3y", event2 = "sos_out_hosphf3y", discini = "discontinuation")
-
-default_kable(discdatahosphf$outprint,
-  caption = "Treatment discontinuation - First HF hospitalization within 3 years by eGFR HFrEF + HFmrEF",
-  escape = TRUE
-) %>%
-  landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
-```
-
-```{r treatdisccoxregdeathcvhosphfpsub, cache=cacheon, dependson="treatdisccoxregsub"}
-
-discdatadeathcvhosphf <- funccoxreg2(
-  time2 = "sos_outtime_hosphf3y", event2 = "sos_out_deathcvhosphf3y",
-  discini = "discontinuation"
-)
-
-default_kable(discdatadeathcvhosphf$outprint,
-  caption = "Treatment discontinuation - CV mortality/first HF hospitalization within 3 years by eGFR HFrEF + HFmrEF",
-  escape = TRUE
-) %>%
-  landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
 ```{r treatinicoxregdeathsub, cache=cacheon, dependson="treatdisccoxregsub"}
@@ -431,6 +406,7 @@ default_kable(inidatadeath$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
+  add_header_above(c(" " = 1, " " = 1, "On treatment after HFH" = 4)) %>%
   add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
@@ -448,37 +424,11 @@ default_kable(inidatadeathcv$outprint,
   escape = TRUE
 ) %>%
   landscape() %>%
+  add_header_above(c(" " = 1, " " = 1, "On treatment after HFH" = 4)) %>%
   add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
 
 ```{r treatinicoxregdeathcvforestsub, fig.cap = "Treatment initiation - CV mortality by eGFR HFrEF + HFmrEF", cache=cacheon, dependson=c("treatdisccoxregsub", "treatdisccoxregforestsub", "treatinicoxregdeathcvsub"), fig.width=10, fig.height=7}
 
 forestfunc(data = inidatadeathcv$outforest, discini = "initiation")
-```
-
-```{r treatinicoxreghosphfsub, cache=cacheon, dependson="treatdisccoxregsub"}
-
-inidatahosphf <- funccoxreg2(time2 = "sos_outtime_hosphf3y", event2 = "sos_out_hosphf3y", discini = "initiation")
-
-default_kable(inidatahosphf$outprint,
-  caption = "Treatment initiation - First HF hospitalization within 3 years by eGFR HFrEF + HFmrEF",
-  escape = TRUE
-) %>%
-  landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
-```
-
-```{r treatinicoxregdeathcvhosphfpsub, cache=cacheon, dependson="treatdisccoxregsub"}
-
-inidatadeathcvhosphf <- funccoxreg2(
-  time2 = "sos_outtime_hosphf3y", event2 = "sos_out_deathcvhosphf3y",
-  discini = "initiation"
-)
-
-default_kable(inidatadeathcvhosphf$outprint,
-  caption = "Treatment initiation - CV mortality/first HF hospitalization within 3 years by eGFR HFrEF + HFmrEF",
-  escape = TRUE
-) %>%
-  landscape() %>%
-  add_header_above(c(" " = 1, " " = 1, ">=60" = 2, "<60" = 2))
 ```
