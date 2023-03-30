@@ -40,7 +40,12 @@ rsdata <- rsdata %>%
     labels = c("Never", "Former/Current"),
     levels = 1:2
     ),
-
+    
+    shf_bpsys_cat = factor(case_when(
+      shf_bpsys <= 100 ~ 1,
+      shf_bpsys > 100 ~ 2
+    ), levels = 1:2, labels = c("<=100", ">100")),
+    
     shf_map_cat = factor(case_when(
       shf_map <= 90 ~ 2,
       shf_map > 90 ~ 1
