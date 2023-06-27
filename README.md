@@ -1,7 +1,6 @@
-# R code for the project Discontinuation of guideline-recommended HF treatments after a HF hospitalization
+# R code for the project Association between a hospitalization for heart failure and the initiation/discontinuation of guideline-recommended treatments - An analysis from the Swedish heart failure registry
 
-The aim of this R code is to be transparent and document the data handling 
-and statistical analyses performed for the project.
+The aim of this R code is to be transparent and document the data handling and statistical analyses performed for the project.
 
 ## Language 
 
